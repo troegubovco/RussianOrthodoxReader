@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <title>02_Orthodox_Cross</title>
+  
+  <!-- Vertical Bar -->
+  <rect x="441" y="180" width="143" height="665" fill="#F7F4EF"/>
+  
+  <!-- Top Bar -->
+  <rect x="369" y="231" width="286" height="143" fill="#F7F4EF"/>
+  
+  <!-- Middle Bar -->
+  <rect x="282" y="441" width="460" height="143" fill="#F7F4EF"/>
+  
+  <!-- Bottom Slanted Bar -->
+  <rect x="318" y="692" width="389" height="143" 
+        fill="#F7F4EF" transform="rotate(15 512 763.5)"/>
+</svg>

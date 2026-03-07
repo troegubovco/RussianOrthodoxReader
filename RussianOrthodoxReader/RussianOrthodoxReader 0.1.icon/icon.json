@@ -1,0 +1,85 @@
+{
+  "fill" : {
+    "linear-gradient" : [
+      "display-p3:0.82738,0.70029,0.48882,1.00000",
+      "display-p3:0.89795,0.78027,0.58447,1.00000"
+    ],
+    "orientation" : {
+      "start" : {
+        "x" : 0.5,
+        "y" : 1
+      },
+      "stop" : {
+        "x" : 0.5,
+        "y" : 0.3
+      }
+    }
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "hidden" : true,
+          "image-name" : "01_Background.svg",
+          "name" : "01_Background"
+        },
+        {
+          "hidden" : true,
+          "image-name" : "02_Orthodox_Cross.svg",
+          "name" : "02_Orthodox_Cross",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              0,
+              -19.51670518732999
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    },
+    {
+      "layers" : [
+        {
+          "blend-mode" : "multiply",
+          "fill-specializations" : [
+            {
+              "value" : "automatic"
+            },
+            {
+              "appearance" : "dark",
+              "value" : "none"
+            }
+          ],
+          "image-name" : "orthodox-cross-icon-simple-style-vector.jpg",
+          "name" : "orthodox-cross-icon-simple-style-vector",
+          "position" : {
+            "scale" : 0.7,
+            "translation-in-points" : [
+              0,
+              -1.1368683772161603e-13
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : "shared"
+  }
+}
