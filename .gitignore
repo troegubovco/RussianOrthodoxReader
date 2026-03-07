@@ -1,0 +1,12 @@
+# Generated Bible corpus TSVs (large files – rebuild with build_modern.py)
+Tools/build_bible_db/rus_synodal_verses.tsv
+Tools/build_bible_db/modern_verses.tsv
+
+# Cached CRTB download (rebuilt by build_modern.py --cached)
+Tools/build_bible_db/crtb_cache.json
+
+# Generated SQLite databases (rebuild from source; don't commit large binaries)
+Tools/build_bible_db/rus_modern.sqlite
+
+# HTML probe output
+Tools/build_bible_db/probe_gen1.html
