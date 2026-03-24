@@ -16,23 +16,24 @@ final class ReaderViewModel: ObservableObject {
     @Published var sections: [ReaderSection] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
-    @Published var hasPreviousChapter = false
-    @Published var hasNextChapter = false
-    /// Non-nil after an initial chapter load that pre-loaded the previous chapter.
-    /// ReaderView scrolls to this section ID so the user starts at the selected chapter.
-    @Published var scrollTarget: String?
+    /// Set after loading to tell the view which section to scroll to.
+    @Published var scrollToSectionID: String?
 
     private var chapterBook: BibleBook?
-    private var loadedChapterRange: ClosedRange<Int>?
-    private var isAppendingChapter = false
-    private var isPrependingChapter = false
+    /// Task handle for the background full-book load, so it can be cancelled
+    /// if the user navigates away before it finishes.
+    private var bookLoadTask: Task<Void, Never>?
 
     func load(route: ReaderRoute) async {
+        // Cancel any in-flight background book load
+        bookLoadTask?.cancel()
+        bookLoadTask = nil
+
         isLoading = true
 
         switch route {
         case let .chapter(bookId, chapter):
-            await loadChapter(bookId: bookId, chapter: chapter)
+            await loadBook(bookId: bookId, chapter: chapter)
         case let .references(title, references):
             await loadReferences(title: title, references: references)
         }
@@ -40,144 +41,75 @@ final class ReaderViewModel: ObservableObject {
         isLoading = false
     }
 
-    func loadNextChapterIfNeeded(after section: ReaderSection) {
-        guard let book = chapterBook,
-              let range = loadedChapterRange,
-              let lastSection = sections.last,
-              lastSection.id == section.id,
-              !isAppendingChapter else {
-            return
-        }
-
-        let nextChapter = range.upperBound + 1
-        guard nextChapter <= book.chapterCount else {
-            hasNextChapter = false
-            return
-        }
-
-        isAppendingChapter = true
-        let bookId = book.id
-        let bookCount = book.chapterCount
-
-        Task {
-            let section = await Self.buildChapterSection(bookId: bookId, chapter: nextChapter)
-
-            if let section {
-                sections.append(section)
-                loadedChapterRange = range.lowerBound...nextChapter
-                refreshChapterBoundaries()
-            } else {
-                hasNextChapter = false
-            }
-            isAppendingChapter = false
-
-            // Preload the chapter after that
-            let preloadChapter = nextChapter + 1
-            if preloadChapter <= bookCount {
-                let repo = BibleSQLiteRepository.shared
-                Task.detached(priority: .utility) {
-                    _ = await repo.chapter(bookId: bookId, chapter: preloadChapter)
-                }
-            }
-        }
-    }
-
-    func loadPreviousChapter() {
-        guard let book = chapterBook,
-              let range = loadedChapterRange,
-              !isPrependingChapter else {
-            return
-        }
-
-        let previousChapter = range.lowerBound - 1
-        guard previousChapter >= 1 else {
-            hasPreviousChapter = false
-            return
-        }
-
-        isPrependingChapter = true
-        let bookId = book.id
-
-        Task {
-            let section = await Self.buildChapterSection(bookId: bookId, chapter: previousChapter)
-
-            if let section {
-                sections.insert(section, at: 0)
-                loadedChapterRange = previousChapter...range.upperBound
-                refreshChapterBoundaries()
-            } else {
-                hasPreviousChapter = false
-            }
-            isPrependingChapter = false
-        }
-    }
-
     // MARK: - Private
 
-    private func loadChapter(bookId: String, chapter: Int) async {
+    /// Two-phase book loading:
+    /// Phase 1: Load the target chapter immediately so the user sees content.
+    /// Phase 2: Load all remaining chapters in the background and replace the sections array.
+    private func loadBook(bookId: String, chapter: Int) async {
         guard let book = BibleDataProvider.book(id: bookId) else {
             title = "Чтение"
             sections = []
             errorMessage = "Книга не найдена"
             chapterBook = nil
-            loadedChapterRange = nil
-            hasPreviousChapter = false
-            hasNextChapter = false
             return
         }
 
         let selectedChapter = min(max(1, chapter), max(1, book.chapterCount))
 
-        let section = await Self.buildChapterSection(bookId: bookId, chapter: selectedChapter)
+        // Phase 1: Load target chapter for instant display
+        let targetSection = await Self.buildChapterSection(bookId: bookId, chapter: selectedChapter)
 
-        guard let section else {
+        guard let targetSection else {
             title = "Чтение"
             sections = []
             errorMessage = "Глава не найдена в локальной базе"
             chapterBook = nil
-            loadedChapterRange = nil
-            hasPreviousChapter = false
-            hasNextChapter = false
             return
         }
 
-        // Pre-load the previous chapter so the user can scroll up immediately.
-        var initialSections: [ReaderSection] = [section]
-        var initialRange = selectedChapter...selectedChapter
-
-        if selectedChapter > 1,
-           let prevSection = await Self.buildChapterSection(bookId: bookId, chapter: selectedChapter - 1) {
-            initialSections.insert(prevSection, at: 0)
-            initialRange = (selectedChapter - 1)...selectedChapter
-            scrollTarget = section.id
-        }
-
         chapterBook = book
-        loadedChapterRange = initialRange
-        sections = initialSections
+        sections = [targetSection]
         title = book.name
         errorMessage = nil
-        refreshChapterBoundaries()
+        scrollToSectionID = targetSection.id
 
-        // Preload adjacent chapters in background (N+1 and N-2 since N-1 is already loaded)
-        let bookCount = book.chapterCount
-        let repo = BibleSQLiteRepository.shared
-        Task.detached(priority: .utility) {
-            if selectedChapter + 1 <= bookCount {
-                _ = await repo.chapter(bookId: bookId, chapter: selectedChapter + 1)
+        // Phase 2: Load all chapters in the background
+        let chapterCount = book.chapterCount
+        let targetID = targetSection.id
+
+        bookLoadTask = Task {
+            var allSections: [ReaderSection] = []
+            allSections.reserveCapacity(chapterCount)
+
+            for ch in 1...chapterCount {
+                guard !Task.isCancelled else { return }
+
+                if ch == selectedChapter {
+                    // Reuse the already-built target section
+                    allSections.append(targetSection)
+                } else if let section = await Self.buildChapterSection(bookId: bookId, chapter: ch) {
+                    allSections.append(section)
+                }
             }
-            if selectedChapter - 2 >= 1 {
-                _ = await repo.chapter(bookId: bookId, chapter: selectedChapter - 2)
-            }
+
+            guard !Task.isCancelled else { return }
+
+            // Replace sections with the full book.
+            // First nil out scrollToSectionID, then set it after a tick,
+            // so .onChange fires even though the target ID is the same value.
+            scrollToSectionID = nil
+            sections = allSections
+            // Allow SwiftUI to process the sections change, then scroll.
+            try? await Task.sleep(for: .milliseconds(50))
+            guard !Task.isCancelled else { return }
+            scrollToSectionID = targetID
         }
     }
 
     private func loadReferences(title: String, references: [ReadingReference]) async {
         self.title = title
         chapterBook = nil
-        loadedChapterRange = nil
-        hasPreviousChapter = false
-        hasNextChapter = false
 
         let sortedRefs = references.sorted(by: { $0.ordinal < $1.ordinal })
 
@@ -237,17 +169,5 @@ final class ReaderViewModel: ObservableObject {
                 chapter: chapterData.chapter
             )
         }.value
-    }
-
-    private func refreshChapterBoundaries() {
-        guard let book = chapterBook,
-              let range = loadedChapterRange else {
-            hasPreviousChapter = false
-            hasNextChapter = false
-            return
-        }
-
-        hasPreviousChapter = range.lowerBound > 1
-        hasNextChapter = range.upperBound < book.chapterCount
     }
 }

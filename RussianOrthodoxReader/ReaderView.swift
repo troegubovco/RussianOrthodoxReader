@@ -13,9 +13,8 @@ struct ReaderView: View {
     @State private var showDictionary = false
     @State private var selectedWord: String?
     @State private var showTabOverlay = false
-    /// Becomes true after the initial chapter load (and any scroll-to-target) completes,
-    /// enabling automatic previous-chapter loading when the user scrolls up.
-    @State private var initialLoadComplete = false
+    /// Tracks the currently visible section for scroll position.
+    @State private var scrolledSectionID: String?
 
     private let theme = OrthodoxColors.fallback
 
@@ -28,63 +27,27 @@ struct ReaderView: View {
             VStack(spacing: 0) {
                 readerHeader(isLandscape: isLandscape)
 
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        if viewModel.isLoading {
-                            ProgressView()
-                                .frame(maxWidth: .infinity)
-                                .padding(.top, 32)
-                        } else {
-                            LazyVStack(alignment: .leading, spacing: 24) {
-                                ForEach(viewModel.sections) { section in
-                                    sectionView(section)
-                                        .id(section.id)
-                                        .onAppear {
-                                            // Auto-load previous chapter when first section enters viewport.
-                                            // initialLoadComplete prevents triggering on the initial render
-                                            // before the scroll-to-selected-chapter animation completes.
-                                            if section.id == viewModel.sections.first?.id,
-                                               viewModel.hasPreviousChapter,
-                                               initialLoadComplete {
-                                                let firstID = section.id
-                                                viewModel.loadPreviousChapter()
-                                                withAnimation(.easeInOut(duration: 0.2)) {
-                                                    proxy.scrollTo(firstID, anchor: .top)
-                                                }
-                                            }
-                                            viewModel.loadNextChapterIfNeeded(after: section)
-                                        }
-                                }
-
-                                if viewModel.hasNextChapter {
-                                    HStack(spacing: 8) {
-                                        ProgressView()
-                                            .scaleEffect(0.8)
-                                        Text("Подгружаем следующую главу")
-                                            .font(AppFont.regular(typ.caption))
-                                            .foregroundColor(theme.muted)
-                                    }
-                                    .padding(.top, 4)
-                                }
+                ScrollView {
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 32)
+                    } else {
+                        LazyVStack(alignment: .leading, spacing: 24) {
+                            ForEach(viewModel.sections) { section in
+                                sectionView(section)
+                                    .id(section.id)
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, AppLayout.horizontalInset(isLandscape: isLandscape))
-                            .padding(.top, isLandscape ? AppLayout.verticalPaddingLandscape : 0)
-                            .padding(.bottom, isLandscape ? AppLayout.verticalPaddingLandscape : 0)
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, AppLayout.horizontalInset(isLandscape: isLandscape))
+                        .padding(.top, isLandscape ? AppLayout.verticalPaddingLandscape : 0)
+                        .padding(.bottom, isLandscape ? AppLayout.verticalPaddingLandscape : 0)
                     }
-                    .onChange(of: viewModel.isLoading) { _, isLoading in
-                        guard !isLoading else { return }
-                        if let target = viewModel.scrollTarget {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                                proxy.scrollTo(target, anchor: .top)
-                                viewModel.scrollTarget = nil
-                                initialLoadComplete = true
-                            }
-                        } else {
-                            initialLoadComplete = true
-                        }
-                    }
+                }
+                .scrollPosition(id: $scrolledSectionID, anchor: .top)
+                .onChange(of: viewModel.scrollToSectionID) { _, newID in
+                    scrolledSectionID = newID
                 }
             }
         }
@@ -92,7 +55,7 @@ struct ReaderView: View {
         // Swipe-up tab navigation overlay
         .overlay { tabNavigationOverlay }
         .task(id: route.id) {
-            initialLoadComplete = false
+            scrolledSectionID = nil
             await viewModel.load(route: route)
         }
         .fullScreenCover(isPresented: $showDictionary) {
