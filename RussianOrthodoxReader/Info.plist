@@ -18,6 +18,12 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>NSCameraReactionEffectGesturesEnabledDefault</key>
+	<false/>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Fonts/CormorantGaramond-VariableFont_wght.ttf</string>
@@ -25,8 +31,6 @@
 	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
 	<key>UIRequiresFullScreen</key>
 	<false/>
 	<key>UISupportedInterfaceOrientations</key>

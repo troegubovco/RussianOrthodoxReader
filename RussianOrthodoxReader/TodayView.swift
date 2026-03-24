@@ -3,27 +3,48 @@ import SwiftUI
 // MARK: - Reading group helper (for .other / extra readings)
 
 struct ExtraReadingGroup: Identifiable {
-    let id: String          // = displayRef (unique per scripture range)
+    let id: String          // = "sourceLabel|bookId" or displayRef
     let sourceLabel: String // e.g. "6th Hour", "Vespers"
-    let displayRef: String  // e.g. "Isaiah 2.11-21"
+    let displayRef: String  // e.g. "Быт 8:21–9:7"
     let references: [ReadingReference]
 
-    /// Collapses references into unique displayRef groups, preserving ordinal order.
+    /// Groups references by (sourceLabel, bookId) so cross-chapter splits of the same
+    /// reading (e.g., Быт 8:21-22 + Быт 9:1-7) appear as one row, preserving ordinal order.
     static func grouped(from refs: [ReadingReference]) -> [ExtraReadingGroup] {
-        var seen: Set<String> = []
-        var groups: [ExtraReadingGroup] = []
+        var orderedKeys: [String] = []
+        var keyToRefs: [String: [ReadingReference]] = [:]
+
         for ref in refs {
-            guard !seen.contains(ref.displayRef) else { continue }
-            seen.insert(ref.displayRef)
-            let matching = refs.filter { $0.displayRef == ref.displayRef }
-            groups.append(ExtraReadingGroup(
-                id: ref.displayRef,
-                sourceLabel: ref.sourceLabel,
-                displayRef: ref.displayRef,
-                references: matching
-            ))
+            let key = "\(ref.sourceLabel)|\(ref.bookId)"
+            if keyToRefs[key] == nil {
+                orderedKeys.append(key)
+                keyToRefs[key] = [ref]
+            } else {
+                keyToRefs[key]!.append(ref)
+            }
         }
-        return groups
+
+        return orderedKeys.compactMap { key in
+            guard let groupRefs = keyToRefs[key], let first = groupRefs.first else { return nil }
+            let displayRef = makeDisplayRef(for: groupRefs)
+            return ExtraReadingGroup(id: key, sourceLabel: first.sourceLabel, displayRef: displayRef, references: groupRefs)
+        }
+    }
+
+    /// Builds a combined display label for a group of references from the same book.
+    /// For a single reference, returns its existing displayRef.
+    /// For multiple (cross-chapter), builds e.g. "Быт 8:21–9:7".
+    private static func makeDisplayRef(for refs: [ReadingReference]) -> String {
+        guard refs.count > 1, let first = refs.first, let last = refs.last else {
+            return refs.first?.displayRef ?? ""
+        }
+        // Extract book abbreviation from the first displayRef (e.g., "Быт" from "Быт 8:21-22")
+        let bookAbbr = first.displayRef.components(separatedBy: " ").first ?? first.displayRef
+        let endVerse = last.verseEnd < 200 ? last.verseEnd : last.verseStart
+        if first.chapter == last.chapter {
+            return "\(bookAbbr) \(first.chapter):\(first.verseStart)–\(endVerse)"
+        }
+        return "\(bookAbbr) \(first.chapter):\(first.verseStart)–\(last.chapter):\(endVerse)"
     }
 
     /// Maps the API's English `source` strings to Russian display labels.

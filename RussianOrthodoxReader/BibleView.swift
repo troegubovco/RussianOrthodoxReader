@@ -2,7 +2,10 @@ import SwiftUI
 
 struct BibleView: View {
     let onSelectChapter: (ReaderRoute) -> Void
+    /// When non-nil, a "Resume reading" banner is shown at the top of the list.
+    var onResume: (() -> Void)? = nil
 
+    @EnvironmentObject var appState: AppState
     @Environment(\.userFontSize) private var userFontSize
     @State private var selectedTestament: Testament = .new
     @State private var chapterPickerBook: BibleBook?
@@ -24,6 +27,10 @@ struct BibleView: View {
                         .font(AppFont.medium(typ.title))
                         .foregroundColor(theme.text)
                         .padding(.top, isLandscape ? 12 : 8)
+
+                    if let onResume {
+                        ResumeReadingBanner(onResume: onResume)
+                    }
 
                     TestamentPicker(selected: $selectedTestament)
 
@@ -57,6 +64,12 @@ struct BibleView: View {
                 onSelectChapter(.chapter(bookId: book.id, chapter: chapter))
             }
             .presentationDetents([.medium])
+        }
+        .onChange(of: appState.bibleResetTrigger) { _, _ in
+            withAnimation(.easeInOut(duration: 0.2)) {
+                selectedTestament = .new
+                chapterPickerBook = nil
+            }
         }
     }
 
@@ -205,6 +218,41 @@ struct TestamentPicker: View {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(theme.card)
         )
+    }
+}
+
+// MARK: - Resume banner
+
+private struct ResumeReadingBanner: View {
+    let onResume: () -> Void
+    private let theme = OrthodoxColors.fallback
+
+    var body: some View {
+        Button(action: onResume) {
+            HStack(spacing: 12) {
+                Image(systemName: "bookmark.fill")
+                    .font(.system(size: 14))
+                Text("Продолжить чтение")
+                    .font(AppFont.regular(14))
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .foregroundColor(theme.accent)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 13)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(theme.accent.opacity(0.08))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(theme.accent.opacity(0.2), lineWidth: 0.5)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Продолжить чтение")
+        .accessibilityHint("Вернуться к последнему месту чтения")
     }
 }
 

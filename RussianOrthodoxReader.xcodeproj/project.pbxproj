@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 90;
 	objects = {
 
 /* Begin PBXFileReference section */
@@ -37,10 +37,8 @@
 /* Begin PBXFrameworksBuildPhase section */
 		91B018812F5009350002FB19 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
@@ -74,14 +72,10 @@
 			);
 			buildRules = (
 			);
-			dependencies = (
-			);
 			fileSystemSynchronizedGroups = (
 				91B018862F5009350002FB19 /* RussianOrthodoxReader */,
 			);
 			name = RussianOrthodoxReader;
-			packageProductDependencies = (
-			);
 			productName = RussianOrthodoxReader;
 			productReference = 91B018842F5009350002FB19 /* RussianOrthodoxReader.app */;
 			productType = "com.apple.product-type.application";
@@ -111,7 +105,7 @@
 			);
 			mainGroup = 91B0187B2F5009350002FB19;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
+			preferredProjectObjectVersion = 90;
 			productRefGroup = 91B018852F5009350002FB19 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -124,25 +118,21 @@
 /* Begin PBXResourcesBuildPhase section */
 		91B018822F5009350002FB19 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		91B018802F5009350002FB19 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		91B0188D2F5009370002FB19 /* Debug */ = {
+		91B0188D2F5009370002FB19 /* Debug configuration for PBXProject "RussianOrthodoxReader" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -207,7 +197,7 @@
 			};
 			name = Debug;
 		};
-		91B0188E2F5009370002FB19 /* Release */ = {
+		91B0188E2F5009370002FB19 /* Release configuration for PBXProject "RussianOrthodoxReader" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -264,14 +254,14 @@
 			};
 			name = Release;
 		};
-		91B018902F5009370002FB19 /* Debug */ = {
+		91B018902F5009370002FB19 /* Debug configuration for PBXNativeTarget "RussianOrthodoxReader" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "RussianOrthodoxReader 0.1";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = QYY9CDDWYA;
 				ENABLE_APP_SANDBOX = YES;
@@ -312,14 +302,14 @@
 			};
 			name = Debug;
 		};
-		91B018912F5009370002FB19 /* Release */ = {
+		91B018912F5009370002FB19 /* Release configuration for PBXNativeTarget "RussianOrthodoxReader" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "RussianOrthodoxReader 0.1";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = QYY9CDDWYA;
 				ENABLE_APP_SANDBOX = YES;
@@ -366,19 +356,17 @@
 		91B0187F2F5009350002FB19 /* Build configuration list for PBXProject "RussianOrthodoxReader" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				91B0188D2F5009370002FB19 /* Debug */,
-				91B0188E2F5009370002FB19 /* Release */,
+				91B0188D2F5009370002FB19 /* Debug configuration for PBXProject "RussianOrthodoxReader" */,
+				91B0188E2F5009370002FB19 /* Release configuration for PBXProject "RussianOrthodoxReader" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		91B0188F2F5009370002FB19 /* Build configuration list for PBXNativeTarget "RussianOrthodoxReader" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				91B018902F5009370002FB19 /* Debug */,
-				91B018912F5009370002FB19 /* Release */,
+				91B018902F5009370002FB19 /* Debug configuration for PBXNativeTarget "RussianOrthodoxReader" */,
+				91B018912F5009370002FB19 /* Release configuration for PBXNativeTarget "RussianOrthodoxReader" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */

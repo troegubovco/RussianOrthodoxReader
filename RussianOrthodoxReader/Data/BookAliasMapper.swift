@@ -68,8 +68,8 @@ struct BookAliasMapper {
         "ephesians": "eph", "eph": "eph", "еф": "eph",
         "philippians": "phi", "phil": "phi", "phi": "phi", "флп": "phi",
         "colossians": "col", "col": "col", "кол": "col",
-        "1thessalonians": "1th", "1 thessalonians": "1th", "1th": "1th", "1фес": "1th",
-        "2thessalonians": "2th", "2 thessalonians": "2th", "2th": "2th", "2фес": "2th",
+        "1thessalonians": "1th", "1 thessalonians": "1th", "1th": "1th", "1фес": "1th", "1сол": "1th",
+        "2thessalonians": "2th", "2 thessalonians": "2th", "2th": "2th", "2фес": "2th", "2сол": "2th",
         "1timothy": "1ti", "1 timothy": "1ti", "1ti": "1ti", "1тим": "1ti",
         "2timothy": "2ti", "2 timothy": "2ti", "2ti": "2ti", "2тим": "2ti",
         "titus": "tit", "tit": "tit", "тит": "tit",
@@ -98,4 +98,3 @@ struct BookAliasMapper {
         "2esdras": "2es", "2 esdras": "2es", "2es": "2es", "2езд": "2es"
     ]
 }
-

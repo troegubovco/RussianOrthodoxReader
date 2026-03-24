@@ -18,6 +18,9 @@ final class ReaderViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var hasPreviousChapter = false
     @Published var hasNextChapter = false
+    /// Non-nil after an initial chapter load that pre-loaded the previous chapter.
+    /// ReaderView scrolls to this section ID so the user starts at the selected chapter.
+    @Published var scrollTarget: String?
 
     private var chapterBook: BibleBook?
     private var loadedChapterRange: ClosedRange<Int>?
@@ -138,22 +141,33 @@ final class ReaderViewModel: ObservableObject {
             return
         }
 
+        // Pre-load the previous chapter so the user can scroll up immediately.
+        var initialSections: [ReaderSection] = [section]
+        var initialRange = selectedChapter...selectedChapter
+
+        if selectedChapter > 1,
+           let prevSection = await Self.buildChapterSection(bookId: bookId, chapter: selectedChapter - 1) {
+            initialSections.insert(prevSection, at: 0)
+            initialRange = (selectedChapter - 1)...selectedChapter
+            scrollTarget = section.id
+        }
+
         chapterBook = book
-        loadedChapterRange = selectedChapter...selectedChapter
-        sections = [section]
+        loadedChapterRange = initialRange
+        sections = initialSections
         title = book.name
         errorMessage = nil
         refreshChapterBoundaries()
 
-        // Preload adjacent chapters in background
+        // Preload adjacent chapters in background (N+1 and N-2 since N-1 is already loaded)
         let bookCount = book.chapterCount
         let repo = BibleSQLiteRepository.shared
         Task.detached(priority: .utility) {
             if selectedChapter + 1 <= bookCount {
                 _ = await repo.chapter(bookId: bookId, chapter: selectedChapter + 1)
             }
-            if selectedChapter - 1 >= 1 {
-                _ = await repo.chapter(bookId: bookId, chapter: selectedChapter - 1)
+            if selectedChapter - 2 >= 1 {
+                _ = await repo.chapter(bookId: bookId, chapter: selectedChapter - 2)
             }
         }
     }

@@ -4,12 +4,18 @@ import UIKit
 struct ReaderView: View {
     let route: ReaderRoute
     let onBack: () -> Void
+    /// Called when the user picks a tab via the swipe-up navigation overlay.
+    var onSwitchTab: ((AppState.Tab) -> Void)? = nil
 
     @EnvironmentObject var appState: AppState
     @Environment(\.userFontSize) private var userFontSize
     @StateObject private var viewModel = ReaderViewModel()
     @State private var showDictionary = false
     @State private var selectedWord: String?
+    @State private var showTabOverlay = false
+    /// Becomes true after the initial chapter load (and any scroll-to-target) completes,
+    /// enabling automatic previous-chapter loading when the user scrolls up.
+    @State private var initialLoadComplete = false
 
     private let theme = OrthodoxColors.fallback
 
@@ -30,28 +36,22 @@ struct ReaderView: View {
                                 .padding(.top, 32)
                         } else {
                             LazyVStack(alignment: .leading, spacing: 24) {
-                                if viewModel.hasPreviousChapter {
-                                    Button {
-                                        let oldFirstID = viewModel.sections.first?.id
-                                        viewModel.loadPreviousChapter()
-                                        if let oldFirstID {
-                                            withAnimation(.easeInOut(duration: 0.2)) {
-                                                proxy.scrollTo(oldFirstID, anchor: .top)
-                                            }
-                                        }
-                                    } label: {
-                                        Text("Загрузить предыдущую главу")
-                                            .font(AppFont.regular(typ.footnote))
-                                            .foregroundColor(theme.accent)
-                                            .padding(.vertical, 8)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-
                                 ForEach(viewModel.sections) { section in
                                     sectionView(section)
                                         .id(section.id)
                                         .onAppear {
+                                            // Auto-load previous chapter when first section enters viewport.
+                                            // initialLoadComplete prevents triggering on the initial render
+                                            // before the scroll-to-selected-chapter animation completes.
+                                            if section.id == viewModel.sections.first?.id,
+                                               viewModel.hasPreviousChapter,
+                                               initialLoadComplete {
+                                                let firstID = section.id
+                                                viewModel.loadPreviousChapter()
+                                                withAnimation(.easeInOut(duration: 0.2)) {
+                                                    proxy.scrollTo(firstID, anchor: .top)
+                                                }
+                                            }
                                             viewModel.loadNextChapterIfNeeded(after: section)
                                         }
                                 }
@@ -73,11 +73,26 @@ struct ReaderView: View {
                             .padding(.bottom, isLandscape ? AppLayout.verticalPaddingLandscape : 0)
                         }
                     }
+                    .onChange(of: viewModel.isLoading) { _, isLoading in
+                        guard !isLoading else { return }
+                        if let target = viewModel.scrollTarget {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                                proxy.scrollTo(target, anchor: .top)
+                                viewModel.scrollTarget = nil
+                                initialLoadComplete = true
+                            }
+                        } else {
+                            initialLoadComplete = true
+                        }
+                    }
                 }
             }
         }
         .background(theme.background.ignoresSafeArea())
+        // Swipe-up tab navigation overlay
+        .overlay { tabNavigationOverlay }
         .task(id: route.id) {
+            initialLoadComplete = false
             await viewModel.load(route: route)
         }
         .fullScreenCover(isPresented: $showDictionary) {
@@ -92,6 +107,102 @@ struct ReaderView: View {
                     .presentationDetents([.medium, .large])
             }
         }
+    }
+
+    // MARK: - Tab navigation overlay
+
+    @ViewBuilder
+    private var tabNavigationOverlay: some View {
+        ZStack(alignment: .bottom) {
+            // Transparent hot zone at the very bottom — detects the swipe-up gesture.
+            // Restricted to this zone so normal content scrolling is unaffected.
+            if !showTabOverlay {
+                VStack(spacing: 0) {
+                    Spacer()
+                    Color.clear
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .contentShape(Rectangle())
+                        .gesture(swipeUpGesture)
+                }
+            }
+
+            // Dimmed backdrop + floating tab bar, shown after a qualifying swipe.
+            if showTabOverlay {
+                Color.black.opacity(0.35)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                            showTabOverlay = false
+                        }
+                    }
+                    .transition(.opacity)
+
+                floatingTabBar
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: showTabOverlay)
+    }
+
+    private var swipeUpGesture: some Gesture {
+        DragGesture(minimumDistance: 20, coordinateSpace: .local)
+            .onEnded { value in
+                let dy = value.translation.height      // negative = upward
+                let dx = value.translation.width
+                // Require: upward ≥ 40 pt, primarily vertical, sufficient velocity.
+                guard dy < -40,
+                      abs(dy) > abs(dx) * 1.3,
+                      value.predictedEndTranslation.height < -90
+                else { return }
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    showTabOverlay = true
+                }
+            }
+    }
+
+    private var floatingTabBar: some View {
+        VStack(spacing: 0) {
+            // Drag handle
+            RoundedRectangle(cornerRadius: 2.5, style: .continuous)
+                .fill(theme.muted.opacity(0.45))
+                .frame(width: 36, height: 5)
+                .padding(.top, 10)
+                .padding(.bottom, 6)
+
+            HStack(spacing: 0) {
+                ForEach(AppState.Tab.allCases, id: \.self) { tab in
+                    Button {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                            showTabOverlay = false
+                        }
+                        onSwitchTab?(tab)
+                    } label: {
+                        VStack(spacing: 4) {
+                            Image(systemName: tab.icon)
+                                .font(.system(size: 22))
+                            Text(tab.rawValue)
+                                .font(AppFont.regular(11))
+                        }
+                        .foregroundColor(appState.selectedTab == tab ? theme.accent : theme.muted)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(tab.rawValue)
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.bottom, 8)
+        }
+        .background(
+            theme.background.opacity(0.97)
+                .background(.ultraThinMaterial)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: .black.opacity(0.18), radius: 24, x: 0, y: -6)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 12)
     }
 
     // MARK: - Header

@@ -23,6 +23,15 @@ struct OrthocalReadingDTO: Codable, Hashable {
         case shortDisplay = "short_display"
         case passage
     }
+
+    init(source: String?, book: String?, description: String?, display: String?, shortDisplay: String?, passage: [OrthocalVerseDTO]) {
+        self.source = source
+        self.book = book
+        self.description = description
+        self.display = display
+        self.shortDisplay = shortDisplay
+        self.passage = passage
+    }
 }
 
 struct OrthocalStoryDTO: Codable, Hashable {
@@ -51,6 +60,19 @@ struct OrthocalDayDTO: Decodable, Hashable {
         case saints
         case stories
         case readings
+    }
+
+    /// Memberwise init for constructing from converted API data (used by AzbykaAPIClient)
+    init(year: Int, month: Int, day: Int, tone: Int?, fastingDescription: String?, fastingException: String?, summaryTitle: String?, saints: [String], readings: [OrthocalReadingDTO]) {
+        self.year = year
+        self.month = month
+        self.day = day
+        self.tone = tone
+        self.fastingDescription = fastingDescription
+        self.fastingException = fastingException
+        self.summaryTitle = summaryTitle
+        self.saints = saints
+        self.readings = readings
     }
 
     init(from decoder: Decoder) throws {

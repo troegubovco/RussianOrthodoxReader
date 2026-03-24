@@ -1,4 +1,17 @@
 import SwiftUI
+import UIKit
+
+// MARK: - Apple System Dictionary wrapper
+
+private struct SystemDictionaryView: UIViewControllerRepresentable {
+    let term: String
+
+    func makeUIViewController(context: Context) -> UIReferenceLibraryViewController {
+        UIReferenceLibraryViewController(term: term)
+    }
+
+    func updateUIViewController(_ uiViewController: UIReferenceLibraryViewController, context: Context) {}
+}
 
 struct DictionaryLookupView: View {
     @Environment(\.dismiss) private var dismiss
@@ -7,6 +20,7 @@ struct DictionaryLookupView: View {
     @State private var results: [DictionaryEntry] = []
     @State private var isSearching = false
     @State private var searchTask: Task<Void, Never>?
+    @State private var showSystemDictionary = false
     @FocusState private var isSearchFocused: Bool
 
     private let dictionary = DictionaryRepository.shared
@@ -132,6 +146,26 @@ struct DictionaryLookupView: View {
                 .foregroundColor(theme.muted)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
+
+            if UIReferenceLibraryViewController.dictionaryHasDefinition(forTerm: query) {
+                Button {
+                    showSystemDictionary = true
+                } label: {
+                    Label("Посмотреть в системном словаре", systemImage: "books.vertical")
+                        .font(AppFont.regular(typ.footnote))
+                        .foregroundColor(theme.accent)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(theme.accent.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 4)
+                .sheet(isPresented: $showSystemDictionary) {
+                    SystemDictionaryView(term: query)
+                        .ignoresSafeArea()
+                }
+            }
         }
         .frame(maxWidth: .infinity, alignment: .top)
     }

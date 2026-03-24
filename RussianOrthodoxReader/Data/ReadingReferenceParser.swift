@@ -20,60 +20,120 @@ struct ReadingReferenceParser {
             return []
         }
         
-        // Parse the bodyPart into [ReadingReference]
+        // Parse the bodyPart into [ReadingReference]. Azbyka often uses commas to
+        // continue the same chapter, e.g. "21:1-11,15-17" or "1:39-49,56".
         let tokens = bodyPart.split(separator: ";").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
         var results: [ReadingReference] = []
         var ordinal = ordinalStart
         
-        for token in tokens {
-            if let range = parseChapterVerseRange(token) {
-                results.append(ReadingReference(
-                    kind: kind,
-                    sourceLabel: sourceLabel,
-                    displayRef: token,
-                    bookId: bookId,
-                    chapter: range.chapter,
-                    verseStart: range.start,
-                    verseEnd: range.end,
-                    ordinal: ordinal
-                ))
-                ordinal += 1
-            } else if let single = parseChapterSingleVerse(token) {
-                results.append(ReadingReference(
-                    kind: kind,
-                    sourceLabel: sourceLabel,
-                    displayRef: token,
-                    bookId: bookId,
-                    chapter: single.chapter,
-                    verseStart: single.verse,
-                    verseEnd: single.verse,
-                    ordinal: ordinal
-                ))
-                ordinal += 1
-            } else if let cross = parseCrossChapterRange(token) {
-                if cross.startChapter == cross.endChapter {
+        for tokenGroup in tokens {
+            let subTokens = tokenGroup
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+
+            var currentChapter: Int?
+
+            for token in subTokens {
+                if let range = parseChapterVerseRange(token) {
+                    currentChapter = range.chapter
                     results.append(ReadingReference(
                         kind: kind,
                         sourceLabel: sourceLabel,
-                        displayRef: token,
+                        displayRef: displayRef(bookPart: bookPart, token: token, chapter: range.chapter),
                         bookId: bookId,
-                        chapter: cross.startChapter,
-                        verseStart: cross.startVerse,
-                        verseEnd: cross.endVerse,
+                        chapter: range.chapter,
+                        verseStart: range.start,
+                        verseEnd: range.end,
                         ordinal: ordinal
                     ))
                     ordinal += 1
-                } else {
-                    // Split cross-chapter range into per-chapter ReadingReference instances.
-                    // E.g., "8:28-9:5" → chapter 8 verses 28-end, chapter 9 verses 1-5.
-                    let maxVersePerChapter = 200 // safe upper bound
+                } else if let single = parseChapterSingleVerse(token) {
+                    currentChapter = single.chapter
+                    results.append(ReadingReference(
+                        kind: kind,
+                        sourceLabel: sourceLabel,
+                        displayRef: displayRef(bookPart: bookPart, token: token, chapter: single.chapter),
+                        bookId: bookId,
+                        chapter: single.chapter,
+                        verseStart: single.verse,
+                        verseEnd: single.verse,
+                        ordinal: ordinal
+                    ))
+                    ordinal += 1
+                } else if let cross = parseCrossChapterRange(token) {
+                    currentChapter = cross.endChapter
+                    if cross.startChapter == cross.endChapter {
+                        results.append(ReadingReference(
+                            kind: kind,
+                            sourceLabel: sourceLabel,
+                            displayRef: displayRef(bookPart: bookPart, token: token, chapter: cross.startChapter),
+                            bookId: bookId,
+                            chapter: cross.startChapter,
+                            verseStart: cross.startVerse,
+                            verseEnd: cross.endVerse,
+                            ordinal: ordinal
+                        ))
+                        ordinal += 1
+                    } else {
+                        // Split cross-chapter range into per-chapter ReadingReference instances.
+                        // E.g., "8:28-9:5" → chapter 8 verses 28-end, chapter 9 verses 1-5.
+                        let maxVersePerChapter = 200 // safe upper bound
+                        for ch in cross.startChapter...cross.endChapter {
+                            let vStart = (ch == cross.startChapter) ? cross.startVerse : 1
+                            let vEnd = (ch == cross.endChapter) ? cross.endVerse : maxVersePerChapter
+                            results.append(ReadingReference(
+                                kind: kind,
+                                sourceLabel: sourceLabel,
+                                displayRef: displayRef(bookPart: bookPart, token: token, chapter: ch),
+                                bookId: bookId,
+                                chapter: ch,
+                                verseStart: vStart,
+                                verseEnd: vEnd,
+                                ordinal: ordinal
+                            ))
+                            ordinal += 1
+                        }
+                    }
+                } else if let chapter = currentChapter, let range = parseVerseRange(token) {
+                    results.append(ReadingReference(
+                        kind: kind,
+                        sourceLabel: sourceLabel,
+                        displayRef: displayRef(bookPart: bookPart, token: token, chapter: chapter),
+                        bookId: bookId,
+                        chapter: chapter,
+                        verseStart: range.start,
+                        verseEnd: range.end,
+                        ordinal: ordinal
+                    ))
+                    ordinal += 1
+                } else if let chapter = currentChapter, let verse = parseSingleVerse(token) {
+                    results.append(ReadingReference(
+                        kind: kind,
+                        sourceLabel: sourceLabel,
+                        displayRef: displayRef(bookPart: bookPart, token: token, chapter: chapter),
+                        bookId: bookId,
+                        chapter: chapter,
+                        verseStart: verse,
+                        verseEnd: verse,
+                        ordinal: ordinal
+                    ))
+                    ordinal += 1
+                } else if let chapter = currentChapter,
+                          let cross = parseImplicitCrossChapterRange(token, startChapter: chapter) {
+                    currentChapter = cross.endChapter
+                    let maxVersePerChapter = 200
                     for ch in cross.startChapter...cross.endChapter {
                         let vStart = (ch == cross.startChapter) ? cross.startVerse : 1
                         let vEnd = (ch == cross.endChapter) ? cross.endVerse : maxVersePerChapter
                         results.append(ReadingReference(
                             kind: kind,
                             sourceLabel: sourceLabel,
-                            displayRef: token,
+                            displayRef: implicitCrossDisplayRef(
+                                bookPart: bookPart,
+                                token: token,
+                                startChapter: cross.startChapter
+                            ),
                             bookId: bookId,
                             chapter: ch,
                             verseStart: vStart,
@@ -82,17 +142,15 @@ struct ReadingReferenceParser {
                         ))
                         ordinal += 1
                     }
+                } else if parseVerseRange(token) != nil || parseSingleVerse(token) != nil {
+                    #if DEBUG
+                    print("[ReadingReferenceParser] Skipping ambiguous verse token without chapter: \(token)")
+                    #endif
+                } else {
+                    #if DEBUG
+                    print("[ReadingReferenceParser] Unparseable token: \(tokenGroup)")
+                    #endif
                 }
-            } else if parseVerseRange(token) != nil {
-                // Verse ranges without a chapter prefix (e.g., "1-5") are ambiguous without context, so skip them.
-                // They could be assumed to apply to a previous chapter, but that's not implemented here.
-                #if DEBUG
-                print("[ReadingReferenceParser] Skipping ambiguous verse range without chapter: \(token)")
-                #endif
-            } else {
-                #if DEBUG
-                print("[ReadingReferenceParser] Unparseable token: \(token)")
-                #endif
             }
         }
         
@@ -157,6 +215,34 @@ struct ReadingReferenceParser {
         let nums = body.split(separator: "-").compactMap { Int($0) }
         guard nums.count == 4 else { return nil }
         return (nums[0], nums[1], nums[2], nums[3])
+    }
+
+    private func parseSingleVerse(_ token: String) -> Int? {
+        guard token.range(of: #"^\d+$"#, options: .regularExpression) != nil else {
+            return nil
+        }
+        return Int(token)
+    }
+
+    private func parseImplicitCrossChapterRange(_ token: String, startChapter: Int) -> (startChapter: Int, startVerse: Int, endChapter: Int, endVerse: Int)? {
+        guard let r = token.range(of: #"^(\d+)-(\d+):(\d+)$"#, options: .regularExpression) else {
+            return nil
+        }
+        let body = String(token[r]).replacingOccurrences(of: ":", with: "-")
+        let nums = body.split(separator: "-").compactMap { Int($0) }
+        guard nums.count == 3 else { return nil }
+        return (startChapter, nums[0], nums[1], nums[2])
+    }
+
+    private func displayRef(bookPart: String, token: String, chapter: Int) -> String {
+        if token.contains(":") {
+            return "\(bookPart) \(token)"
+        }
+        return "\(bookPart) \(chapter):\(token)"
+    }
+
+    private func implicitCrossDisplayRef(bookPart: String, token: String, startChapter: Int) -> String {
+        "\(bookPart) \(startChapter):\(token)"
     }
 
     private func captureGroups(pattern: String, in value: String) -> [String]? {

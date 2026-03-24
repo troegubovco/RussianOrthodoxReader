@@ -26,19 +26,33 @@ enum LiturgicalRepositoryError: LocalizedError {
 @MainActor
 final class LiturgicalRepository: LiturgicalRepositoryProtocol {
     static let shared = LiturgicalRepository()
+    private static let currentSourceVersion = "azbyka.v2"
+
+    // MARK: - Prefetch gate
+    /// UserDefaults key that records when the last full prefetch ran.
+    private static let prefetchGateKey = "lastPrefetchDate"
+    /// Minimum interval between full prefetch runs (24 hours).
+    private static let prefetchMinInterval: TimeInterval = 24 * 60 * 60
+
+    // MARK: - Prefetch window sizes
+    /// Phase 2: days ahead to populate with high priority (current-month feel).
+    private static let phase2DaysAhead = 30
+    /// Phase 3: days ahead to populate in the background (full-year calendar scroll).
+    private static let phase3DaysAhead = 365
 
     private let context: ModelContext
     private let backgroundContext: ModelContext
-    private let apiClient: OrthocalAPIClient
+    private let apiClient: AzbykaAPIClient
+    private let bundledDB = BundledLiturgicalDB.shared
     private let parser = ReadingReferenceParser()
 
     private init(
         context: ModelContext? = nil,
-        apiClient: OrthocalAPIClient? = nil
+        apiClient: AzbykaAPIClient? = nil
     ) {
         self.context = context ?? PersistenceController.shared.container.mainContext
         self.backgroundContext = PersistenceController.shared.newBackgroundContext()
-        self.apiClient = apiClient ?? OrthocalAPIClient()
+        self.apiClient = apiClient ?? AzbykaAPIClient()
     }
 
     func getDay(date: Date) async throws -> LiturgicalDay {
@@ -53,6 +67,13 @@ final class LiturgicalRepository: LiturgicalRepositoryProtocol {
             return mapEntityToDomain(cachedEntity, date: date, isFromCache: true, message: nil)
         }
 
+        // Try bundled liturgical database first (works offline for any year)
+        if let bundledDTO = bundledDB.fetchDay(date: date) {
+            let day = try upsert(dto: bundledDTO, for: date)
+            return day
+        }
+
+        // Fall back to Azbyka API
         do {
             let dto = try await apiClient.fetchDay(date: date)
             let day = try upsert(dto: dto, for: date)
@@ -68,51 +89,86 @@ final class LiturgicalRepository: LiturgicalRepositoryProtocol {
     func prefetchWindow(centerDate: Date) async {
         guard FeatureFlags.useRealReadings else { return }
 
-        // Perform all heavy I/O on background context
+        // 24-hour gate: skip entirely if a full prefetch already ran today.
+        // This eliminates redundant DB queries on every same-day app launch.
+        if let last = UserDefaults.standard.object(forKey: Self.prefetchGateKey) as? Date,
+           Date().timeIntervalSince(last) < Self.prefetchMinInterval {
+            return
+        }
+
         await Task.detached(priority: .utility) { [weak self] in
             guard let self else { return }
-            
+
             let calendar = Calendar.current
-            let start = calendar.date(byAdding: .day, value: -7, to: centerDate) ?? centerDate
-            let end = calendar.date(byAdding: .day, value: 30, to: centerDate) ?? centerDate
+            let today = calendar.startOfDay(for: centerDate)
 
-            var day = start
-            while day <= end {
-                let dateKey = Self.dateKey(from: day)
-                
-                // Check cache on background thread
-                let shouldRefresh: Bool = await self.shouldRefreshDay(dateKey: dateKey, date: day)
+            // Phase 1 — today: ensure it is cached (loadToday() already fired,
+            // but this guarantees the cache entry exists before moving on).
+            await self.refreshIfNeeded(date: today)
 
-                if shouldRefresh {
-                    do {
-                        let dto = try await self.apiClient.fetchDay(date: day)
-                        await self.upsertOnBackground(dto: dto, for: day)
-                    } catch {
-                        // Ignore transient prefetch failures.
-                    }
-                }
+            // Phase 2 — next ~30 days: fills the current-month calendar view quickly.
+            let phase2End = calendar.date(byAdding: .day, value: Self.phase2DaysAhead, to: today) ?? today
+            var day = calendar.date(byAdding: .day, value: 1, to: today) ?? today
+            while day <= phase2End {
+                await self.refreshIfNeeded(date: day)
                 day = calendar.date(byAdding: .day, value: 1, to: day) ?? day.addingTimeInterval(86_400)
             }
 
-            // Purge old data on background thread
+            // Phase 3 — next ~365 days: fills the full year for calendar scrollers.
+            let phase3End = calendar.date(byAdding: .day, value: Self.phase3DaysAhead, to: today) ?? today
+            day = calendar.date(byAdding: .day, value: 1, to: phase2End) ?? phase2End
+            while day <= phase3End {
+                await self.refreshIfNeeded(date: day)
+                day = calendar.date(byAdding: .day, value: 1, to: day) ?? day.addingTimeInterval(86_400)
+            }
+
+            // Purge data outside the retention window.
             await self.purgeOutsideWindowAsync(centerDate: centerDate)
         }.value
+
+        // Record that a full prefetch ran successfully.
+        UserDefaults.standard.set(Date(), forKey: Self.prefetchGateKey)
     }
-    
+
+    /// Fetches and caches a single day if it is missing or stale.
+    private func refreshIfNeeded(date: Date) async {
+        let dateKey = Self.dateKey(from: date)
+        guard await shouldRefreshDay(dateKey: dateKey, date: date) else { return }
+
+        // Try bundled DB first (instant, offline)
+        if let bundledDTO = bundledDB.fetchDay(date: date) {
+            await upsertOnBackground(dto: bundledDTO, for: date)
+            return
+        }
+
+        // Fall back to Azbyka API
+        do {
+            let dto = try await apiClient.fetchDay(date: date)
+            await upsertOnBackground(dto: dto, for: date)
+        } catch {
+            // Ignore transient failures — the next prefetch run will retry.
+        }
+    }
+
     private func shouldRefreshDay(dateKey: String, date: Date) async -> Bool {
         let descriptor = FetchDescriptor<LiturgicalDayEntity>(
             predicate: #Predicate { $0.dateKey == dateKey }
         )
-        
+
         guard let cached = try? backgroundContext.fetch(descriptor).first else {
-            return true
+            return true  // Not in cache at all.
         }
-        
-        let age = Date().timeIntervalSince(cached.fetchedAt)
-        if Calendar.current.isDateInToday(date) {
-            return age > 12 * 60 * 60
-        }
-        return age > 7 * 24 * 60 * 60
+
+        // Source version mismatch means the parser was updated — always re-fetch.
+        if cached.sourceVersion != Self.currentSourceVersion { return true }
+
+        // Past and today: Orthodox liturgical data is immutable — never re-fetch.
+        let today    = Calendar.current.startOfDay(for: Date())
+        let entryDay = Calendar.current.startOfDay(for: date)
+        if entryDay <= today { return false }
+
+        // Future dates: re-verify after 30 days as a conservative safety net.
+        return Date().timeIntervalSince(cached.fetchedAt) > 30 * 24 * 60 * 60
     }
     
     private func upsertOnBackground(dto: OrthocalDayDTO, for date: Date) async {
@@ -136,7 +192,7 @@ final class LiturgicalRepository: LiturgicalRepositoryProtocol {
                 apostolRefRaw: "—",
                 gospelRefRaw: "—",
                 fetchedAt: Date(),
-                sourceVersion: "orthocal.v1"
+                sourceVersion: Self.currentSourceVersion
             )
             backgroundContext.insert(dayEntity)
         }
@@ -171,7 +227,7 @@ final class LiturgicalRepository: LiturgicalRepositoryProtocol {
         dayEntity.apostolRefRaw = apostolRefRaw
         dayEntity.gospelRefRaw = gospelRefRaw
         dayEntity.fetchedAt = Date()
-        dayEntity.sourceVersion = "orthocal.v1"
+        dayEntity.sourceVersion = Self.currentSourceVersion
 
         // Persist ReadingReferenceEntity objects (same as upsert on main context)
         let refDescriptor = FetchDescriptor<ReadingReferenceEntity>(
@@ -215,7 +271,7 @@ final class LiturgicalRepository: LiturgicalRepositoryProtocol {
                 apostolRefRaw: "—",
                 gospelRefRaw: "—",
                 fetchedAt: Date(),
-                sourceVersion: "orthocal.v1"
+                sourceVersion: Self.currentSourceVersion
             )
             context.insert(dayEntity)
         }
@@ -250,7 +306,7 @@ final class LiturgicalRepository: LiturgicalRepositoryProtocol {
         dayEntity.apostolRefRaw = apostolRefRaw
         dayEntity.gospelRefRaw = gospelRefRaw
         dayEntity.fetchedAt = Date()
-        dayEntity.sourceVersion = "orthocal.v1"
+        dayEntity.sourceVersion = Self.currentSourceVersion
 
         try deleteReferenceEntities(for: dateKey)
         for ref in parsedReferences {
@@ -558,6 +614,7 @@ final class LiturgicalRepository: LiturgicalRepositoryProtocol {
         if joined.isEmpty {
             return .none
         }
+        // English patterns (orthocal legacy)
         if joined.contains("strict") || joined.contains("great lent") {
             return .strict
         }
@@ -570,15 +627,33 @@ final class LiturgicalRepository: LiturgicalRepositoryProtocol {
         if joined.contains("fast") {
             return .regular
         }
+        // Russian patterns (azbyka.ru)
+        if joined.contains("строг") {
+            return .strict
+        }
+        if joined.contains("рыб") {
+            return .fish
+        }
+        if joined.contains("елей") || joined.contains("масл") {
+            return .oil
+        }
+        if joined.contains("пост") {
+            return .regular
+        }
         return .none
     }
 
     private func isStale(_ entity: LiturgicalDayEntity, for date: Date) -> Bool {
-        let age = Date().timeIntervalSince(entity.fetchedAt)
-        if Calendar.current.isDateInToday(date) {
-            return age > 12 * 60 * 60
-        }
-        return age > 7 * 24 * 60 * 60
+        // Source version mismatch means the parser was updated — always re-fetch.
+        if entity.sourceVersion != Self.currentSourceVersion { return true }
+
+        // Past and today: Orthodox liturgical data is immutable — never stale.
+        let today    = Calendar.current.startOfDay(for: Date())
+        let entryDay = Calendar.current.startOfDay(for: date)
+        if entryDay <= today { return false }
+
+        // Future dates: re-verify after 30 days as a conservative safety net.
+        return Date().timeIntervalSince(entity.fetchedAt) > 30 * 24 * 60 * 60
     }
 
     private func purgeOutsideWindow(centerDate: Date) {
@@ -590,8 +665,9 @@ final class LiturgicalRepository: LiturgicalRepositoryProtocol {
     
     private func purgeOutsideWindowAsync(centerDate: Date) async {
         let calendar = Calendar.current
-        let lowerBound = calendar.date(byAdding: .day, value: -7, to: centerDate) ?? centerDate
-        let upperBound = calendar.date(byAdding: .day, value: 30, to: centerDate) ?? centerDate
+        // Keep 30 days of history and a full year ahead to support calendar scrolling.
+        let lowerBound = calendar.date(byAdding: .day, value: -30,  to: centerDate) ?? centerDate
+        let upperBound = calendar.date(byAdding: .day, value: +365, to: centerDate) ?? centerDate
 
         let descriptor = FetchDescriptor<LiturgicalDayEntity>()
         guard let allDays = try? backgroundContext.fetch(descriptor) else { return }

@@ -46,6 +46,38 @@ enum ReaderRoute: Hashable, Identifiable {
     }
 }
 
+extension ReaderRoute: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case type, bookId, chapter
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case let .chapter(bookId, chapter):
+            try container.encode("chapter", forKey: .type)
+            try container.encode(bookId, forKey: .bookId)
+            try container.encode(chapter, forKey: .chapter)
+        case .references:
+            // References are date-specific liturgical readings — not persisted.
+            throw EncodingError.invalidValue(self, .init(codingPath: [], debugDescription: "references are not persisted"))
+        }
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let type = try container.decode(String.self, forKey: .type)
+        switch type {
+        case "chapter":
+            let bookId = try container.decode(String.self, forKey: .bookId)
+            let chapter = try container.decode(Int.self, forKey: .chapter)
+            self = .chapter(bookId: bookId, chapter: chapter)
+        default:
+            throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "Unknown route type: \(type)"))
+        }
+    }
+}
+
 // MARK: - Bible Data Provider
 
 struct BibleDataProvider {

@@ -27,6 +27,7 @@ class AppState: ObservableObject {
 
     @Published var selectedTab: Tab = .today
     @Published var calendarResetTrigger: Int = 0
+    @Published var bibleResetTrigger: Int = 0
     @Published var hasPrayedToday: Bool = false
     @Published var showPrayerOverlay: Bool = false
     @Published var fontSize: Double {
@@ -55,6 +56,16 @@ class AppState: ObservableObject {
             UserDefaults.standard.set(notificationTime, forKey: Keys.notificationTime)
         }
     }
+    /// Last chapter the user was reading — persisted so it survives app restarts.
+    /// Only `.chapter` routes are saved (liturgical `.references` are date-specific).
+    @Published var lastReadingRoute: ReaderRoute? {
+        didSet {
+            if let route = lastReadingRoute, case .chapter = route,
+               let data = try? JSONEncoder().encode(route) {
+                UserDefaults.standard.set(data, forKey: Keys.lastReadingRoute)
+            }
+        }
+    }
     
     enum Tab: String, CaseIterable {
         case today = "Сегодня"
@@ -81,6 +92,7 @@ class AppState: ObservableObject {
         static let fontFamily = "fontFamily"
         static let notificationsEnabled = "notificationsEnabled"
         static let notificationTime = "notificationTime"
+        static let lastReadingRoute = "lastReadingRoute"
     }
     
     init() {
@@ -99,8 +111,13 @@ class AppState: ObservableObject {
         
         self.notificationTime = defaults.string(forKey: Keys.notificationTime) ?? "20:00"
         
+        if let data = defaults.data(forKey: Keys.lastReadingRoute),
+           let route = try? JSONDecoder().decode(ReaderRoute.self, from: data) {
+            self.lastReadingRoute = route
+        }
+
         checkPrayerStatus()
-        
+
         // Initialize font family in AppFont to avoid repeated UserDefaults reads
         AppFont.setFamily(self.fontFamily)
     }
