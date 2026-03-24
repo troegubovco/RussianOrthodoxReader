@@ -10,3 +10,4 @@ Tools/build_bible_db/rus_modern.sqlite
 
 # HTML probe output
 Tools/build_bible_db/probe_gen1.html
+annot.opcorpora.xml
