@@ -1,7 +1,12 @@
 import SwiftUI
-import UIKit
+#if os(macOS)
+import AppKit
+#endif
 
 // MARK: - Apple System Dictionary wrapper
+
+#if os(iOS)
+import UIKit
 
 private struct SystemDictionaryView: UIViewControllerRepresentable {
     let term: String
@@ -12,6 +17,7 @@ private struct SystemDictionaryView: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: UIReferenceLibraryViewController, context: Context) {}
 }
+#endif
 
 struct DictionaryLookupView: View {
     @Environment(\.dismiss) private var dismiss
@@ -82,7 +88,19 @@ struct DictionaryLookupView: View {
             }
             .background(theme.background.ignoresSafeArea())
             .navigationTitle("Словарь")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            // Keep the toolbar consistent with the rest of the app on iOS
+            .toolbarBackground(theme.card, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            #else
+            // On macOS the NavigationStack defaults to a dark unified toolbar;
+            // override it with the app's card colour and force light color scheme
+            // so title text and buttons render dark-on-light.
+            .toolbarBackground(theme.card, for: .windowToolbar)
+            .toolbarColorScheme(.light, for: .windowToolbar)
+            .preferredColorScheme(.light)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Закрыть") {
@@ -91,7 +109,10 @@ struct DictionaryLookupView: View {
                     }
                     .font(AppFont.regular(17))
                     .foregroundColor(theme.accent)
+                    // Plain style so macOS doesn't wrap it in a filled blue capsule
+                    .buttonStyle(.plain)
                 }
+                #if os(iOS)
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
                     Button("Готово") {
@@ -99,6 +120,7 @@ struct DictionaryLookupView: View {
                     }
                     .foregroundColor(theme.accent)
                 }
+                #endif
             }
         }
     }
@@ -147,6 +169,7 @@ struct DictionaryLookupView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
 
+            #if os(iOS)
             if UIReferenceLibraryViewController.dictionaryHasDefinition(forTerm: query) {
                 Button {
                     showSystemDictionary = true
@@ -166,6 +189,24 @@ struct DictionaryLookupView: View {
                         .ignoresSafeArea()
                 }
             }
+            #elseif os(macOS)
+            Button {
+                if let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+                   let url = URL(string: "dict://\(encoded)") {
+                    NSWorkspace.shared.open(url)
+                }
+            } label: {
+                Label("Посмотреть в Словаре", systemImage: "books.vertical")
+                    .font(AppFont.regular(typ.footnote))
+                    .foregroundColor(theme.accent)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(theme.accent.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 4)
+            #endif
         }
         .frame(maxWidth: .infinity, alignment: .top)
     }
@@ -181,7 +222,9 @@ struct DictionaryLookupView: View {
             .padding(.vertical, 12)
             .padding(.bottom, isLandscape ? 8 : 20)
         }
+        #if os(iOS)
         .scrollDismissesKeyboard(.interactively)
+        #endif
     }
 
     // MARK: - Search

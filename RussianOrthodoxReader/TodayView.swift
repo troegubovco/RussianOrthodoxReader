@@ -161,6 +161,7 @@ struct TodayView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .readableContentWidth()
                 .padding(.horizontal, AppLayout.horizontalInset(isLandscape: isLandscape))
                 .padding(.vertical, isLandscape ? AppLayout.verticalPaddingLandscape : 0)
             }

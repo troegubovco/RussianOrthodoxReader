@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 struct BibleReadingView: View {
     let chapter: BibleChapter
@@ -21,22 +20,22 @@ struct BibleReadingView: View {
                             let result = NSMutableAttributedString(
                                 string: "\(verse.number) ",
                                 attributes: [
-                                    .font: AppFont.uiFont(size: typ.body - 4, weight: .bold),
-                                    .foregroundColor: UIColor(theme.accent),
+                                    .font: AppFont.platformFont(size: typ.body - 4, weight: .bold),
+                                    .foregroundColor: PlatformColor(theme.accent),
                                     .paragraphStyle: paragraphStyle,
                                 ]
                             )
                             result.append(NSAttributedString(
                                 string: verse.synodal,
                                 attributes: [
-                                    .font: AppFont.uiFont(size: typ.body, weight: .regular),
-                                    .foregroundColor: UIColor(theme.text),
+                                    .font: AppFont.platformFont(size: typ.body, weight: .regular),
+                                    .foregroundColor: PlatformColor(theme.text),
                                     .paragraphStyle: paragraphStyle,
                                 ]
                             ))
                             return result
                         }(),
-                        backgroundColor: UIColor(theme.background),
+                        backgroundColor: PlatformColor(theme.background),
                         onWordSelected: { word in
                             selectedWord = word
                         }

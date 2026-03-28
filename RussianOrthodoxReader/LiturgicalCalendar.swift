@@ -2,13 +2,13 @@ import Foundation
 
 // MARK: - Liturgical Domain
 
-enum ReadingKind: String, Codable, CaseIterable {
+nonisolated enum ReadingKind: String, Codable, CaseIterable {
     case apostol
     case gospel
     case other
 }
 
-struct ReadingReference: Identifiable, Hashable, Codable {
+nonisolated struct ReadingReference: Identifiable, Hashable, Codable {
     let id: String
     let kind: ReadingKind
     /// Original API `source` field (e.g. "6th Hour", "Vespers", "Epistle", "Gospel").

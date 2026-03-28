@@ -1,11 +1,52 @@
 import SwiftUI
-import UIKit
+
+@MainActor
+private final class ReaderScrollObservationCoordinator {
+    private var sectionFrames: [String: CGRect] = [:]
+    private var latestVisibleRect: CGRect = .zero
+    private var latestVisibleIDs: [String] = []
+    private var isScheduled = false
+    private var generation = 0
+
+    func updateSectionFrame(id: String, frame: CGRect) {
+        sectionFrames[id] = frame
+    }
+
+    func schedule(visibleRect: CGRect, apply: @escaping ([String]) -> Void) {
+        latestVisibleRect = visibleRect
+        let capturedGeneration = generation
+        guard !isScheduled else { return }
+        isScheduled = true
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.generation == capturedGeneration else { return }
+            self.isScheduled = false
+            self.latestVisibleIDs = self.sectionFrames.compactMap { id, frame in
+                guard frame.height > 0,
+                      frame.maxY > self.latestVisibleRect.minY,
+                      frame.minY < self.latestVisibleRect.maxY else { return nil }
+                return id
+            }
+            apply(self.latestVisibleIDs)
+        }
+    }
+
+    func reset() {
+        generation += 1
+        sectionFrames = [:]
+        latestVisibleRect = .zero
+        latestVisibleIDs = []
+        isScheduled = false
+    }
+}
 
 struct ReaderView: View {
     let route: ReaderRoute
-    let onBack: () -> Void
+    let onBack: (ReaderRoute?) -> Void
     /// Called when the user picks a tab via the swipe-up navigation overlay.
-    var onSwitchTab: ((AppState.Tab) -> Void)? = nil
+    var onSwitchTab: ((AppState.Tab, ReaderRoute?) -> Void)? = nil
+    /// Reports the currently visible chapter so the parent can persist it.
+    var onVisibleRouteChange: ((ReaderRoute) -> Void)? = nil
 
     @EnvironmentObject var appState: AppState
     @Environment(\.userFontSize) private var userFontSize
@@ -13,8 +54,12 @@ struct ReaderView: View {
     @State private var showDictionary = false
     @State private var selectedWord: String?
     @State private var showTabOverlay = false
-    /// Tracks the currently visible section for scroll position.
-    @State private var scrolledSectionID: String?
+    /// Local tracking of the visible chapter — updated from scroll target visibility.
+    @State private var visibleBookId: String?
+    @State private var visibleChapter: Int?
+    @State private var pendingScrollTargetID: String?
+    @State private var scrollPosition = ScrollPosition(idType: String.self)
+    @State private var scrollObservationCoordinator = ReaderScrollObservationCoordinator()
 
     private let theme = OrthodoxColors.fallback
 
@@ -37,30 +82,66 @@ struct ReaderView: View {
                             ForEach(viewModel.sections) { section in
                                 sectionView(section)
                                     .id(section.id)
+                                    .onGeometryChange(for: CGRect.self) { geometry in
+                                        geometry.frame(in: .scrollView(axis: .vertical))
+                                    } action: { frame in
+                                        scrollObservationCoordinator.updateSectionFrame(id: section.id, frame: frame)
+                                    }
                             }
                         }
+                        .scrollTargetLayout()
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .readableContentWidth()
                         .padding(.horizontal, AppLayout.horizontalInset(isLandscape: isLandscape))
                         .padding(.top, isLandscape ? AppLayout.verticalPaddingLandscape : 0)
                         .padding(.bottom, isLandscape ? AppLayout.verticalPaddingLandscape : 0)
                     }
                 }
-                .scrollPosition(id: $scrolledSectionID, anchor: .top)
-                .onChange(of: viewModel.scrollToSectionID) { _, newID in
-                    scrolledSectionID = newID
+                .scrollPosition($scrollPosition, anchor: .top)
+                .onScrollGeometryChange(for: CGRect.self, of: { geometry in
+                    geometry.visibleRect
+                }) { _, visibleRect in
+                    scrollObservationCoordinator.schedule(visibleRect: visibleRect) { coalescedVisibleIDs in
+                        handleVisibleSectionIDs(coalescedVisibleIDs)
+                    }
+                }
+                .onChange(of: viewModel.scrollRequest) { _, newRequest in
+                    guard let newRequest else { return }
+                    pendingScrollTargetID = newRequest.id
+                    Task { @MainActor in
+                        scrollToSection(newRequest)
+                    }
                 }
             }
         }
         .background(theme.background.ignoresSafeArea())
-        // Swipe-up tab navigation overlay
+        #if os(iOS)
+        // Swipe-up tab navigation overlay (iOS only)
         .overlay { tabNavigationOverlay }
+        #endif
         .task(id: route.id) {
-            scrolledSectionID = nil
-            await viewModel.load(route: route)
+            visibleBookId = nil
+            visibleChapter = nil
+            pendingScrollTargetID = nil
+            scrollPosition = ScrollPosition(idType: String.self)
+            scrollObservationCoordinator.reset()
+            if case let .chapter(bookId, chapter) = route {
+                visibleBookId = bookId
+                visibleChapter = chapter
+                pendingScrollTargetID = "\(bookId)-\(chapter)"
+                onVisibleRouteChange?(ReaderRoute.chapter(bookId: bookId, chapter: chapter))
+            }
+            viewModel.load(route: route)
         }
+        #if os(iOS)
         .fullScreenCover(isPresented: $showDictionary) {
             DictionaryLookupView()
         }
+        #else
+        .sheet(isPresented: $showDictionary) {
+            DictionaryLookupView()
+        }
+        #endif
         .sheet(isPresented: .init(
             get: { selectedWord != nil },
             set: { if !$0 { selectedWord = nil } }
@@ -74,6 +155,7 @@ struct ReaderView: View {
 
     // MARK: - Tab navigation overlay
 
+    #if os(iOS)
     @ViewBuilder
     private var tabNavigationOverlay: some View {
         ZStack(alignment: .bottom) {
@@ -139,7 +221,7 @@ struct ReaderView: View {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                             showTabOverlay = false
                         }
-                        onSwitchTab?(tab)
+                        onSwitchTab?(tab, currentChapterRoute())
                     } label: {
                         VStack(spacing: 4) {
                             Image(systemName: tab.icon)
@@ -167,13 +249,16 @@ struct ReaderView: View {
         .padding(.horizontal, 16)
         .padding(.bottom, 12)
     }
+    #endif
 
     // MARK: - Header
 
     private func readerHeader(isLandscape: Bool) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Button(action: onBack) {
+                Button {
+                    onBack(currentChapterRoute())
+                } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "arrow.left")
                         Text("Назад")
@@ -238,6 +323,8 @@ struct ReaderView: View {
                     .foregroundColor(theme.muted)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .readableContentWidth()
         .padding(.horizontal, AppLayout.horizontalInset(isLandscape: isLandscape))
         .padding(.top, isLandscape ? 8 : 6)
         .padding(.bottom, isLandscape ? 8 : 0)
@@ -289,7 +376,7 @@ struct ReaderView: View {
 
         SelectableTextView(
             attributedText: verseNSAttributedString(number: verse.number, text: clean),
-            backgroundColor: UIColor(theme.background),
+            backgroundColor: PlatformColor(theme.background),
             onWordSelected: { word in
                 selectedWord = word
             }
@@ -314,24 +401,61 @@ struct ReaderView: View {
         let result = NSMutableAttributedString(
             string: "\(number) ",
             attributes: [
-                .font: AppFont.uiFont(size: fontSize - 4, weight: .bold),
-                .foregroundColor: UIColor(theme.accent),
+                .font: AppFont.platformFont(size: fontSize - 4, weight: .bold),
+                .foregroundColor: PlatformColor(theme.accent),
                 .paragraphStyle: paragraphStyle,
             ]
         )
         result.append(NSMutableAttributedString(
             string: text,
             attributes: [
-                .font: AppFont.uiFont(size: fontSize, weight: .regular),
-                .foregroundColor: UIColor(theme.text),
+                .font: AppFont.platformFont(size: fontSize, weight: .regular),
+                .foregroundColor: PlatformColor(theme.text),
                 .paragraphStyle: paragraphStyle,
             ]
         ))
         return result
     }
+
+    private func scrollToSection(_ request: ReaderScrollRequest) {
+        var transaction = Transaction()
+        transaction.disablesAnimations = !request.animated
+        withTransaction(transaction) {
+            scrollPosition.scrollTo(id: request.id, anchor: .top)
+        }
+    }
+
+    private func handleVisibleSectionIDs(_ visibleIDs: [String]) {
+        guard case .chapter = route else { return }
+
+        let visibleIDSet = Set(visibleIDs)
+        guard !visibleIDSet.isEmpty else { return }
+
+        guard let section = viewModel.sections.first(where: { visibleIDSet.contains($0.id) }),
+              let bookId = section.bookId,
+              let chapter = section.chapter else { return }
+
+        if let pendingScrollTargetID {
+            guard section.id == pendingScrollTargetID else { return }
+            self.pendingScrollTargetID = nil
+        }
+
+        guard visibleBookId != bookId || visibleChapter != chapter else { return }
+        visibleBookId = bookId
+        visibleChapter = chapter
+        onVisibleRouteChange?(ReaderRoute.chapter(bookId: bookId, chapter: chapter))
+    }
+
+    private func currentChapterRoute() -> ReaderRoute? {
+        guard case let .chapter(bookId, chapter) = route else { return nil }
+        return .chapter(
+            bookId: visibleBookId ?? bookId,
+            chapter: visibleChapter ?? chapter
+        )
+    }
 }
 
 #Preview {
-    ReaderView(route: .chapter(bookId: "mat", chapter: 5), onBack: {})
+    ReaderView(route: .chapter(bookId: "mat", chapter: 5), onBack: { _ in })
         .environmentObject(AppState())
 }

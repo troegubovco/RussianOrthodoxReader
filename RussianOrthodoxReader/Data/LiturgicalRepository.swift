@@ -36,9 +36,9 @@ final class LiturgicalRepository: LiturgicalRepositoryProtocol {
 
     // MARK: - Prefetch window sizes
     /// Phase 2: days ahead to populate with high priority (current-month feel).
-    private static let phase2DaysAhead = 30
+    private nonisolated static let phase2DaysAhead = 30
     /// Phase 3: days ahead to populate in the background (full-year calendar scroll).
-    private static let phase3DaysAhead = 365
+    private nonisolated static let phase3DaysAhead = 365
 
     private let context: ModelContext
     private let backgroundContext: ModelContext

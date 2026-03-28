@@ -1,5 +1,9 @@
 import SwiftUI
+#if canImport(UIKit)
 import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
 import CoreText
 import CoreFoundation
 
@@ -80,6 +84,8 @@ enum AppLayout {
     static let horizontalPaddingPortrait: CGFloat = 32
     static let horizontalPaddingLandscape: CGFloat = 24
     static let verticalPaddingLandscape: CGFloat = 12
+    static let readableDetailWidth: CGFloat = 900
+    static let readableCalendarWidth: CGFloat = 820
 
     static func horizontalInset(isLandscape: Bool) -> CGFloat {
         isLandscape ? horizontalPaddingLandscape : horizontalPaddingPortrait
@@ -173,26 +179,38 @@ struct AppFont {
         }
     }
 
-    // MARK: - UIFont (for UIKit-bridged views like SelectableTextView)
+    // MARK: - PlatformFont (for bridged views like SelectableTextView)
 
-    /// Creates a UIFont matching the current font family and weight.
-    static func uiFont(size: CGFloat, weight: Font.Weight = .regular) -> UIFont {
+    /// Creates a PlatformFont matching the current font family and weight.
+    static func platformFont(size: CGFloat, weight: Font.Weight = .regular) -> PlatformFont {
         switch _cachedFamily {
         case .cormorant:
-            return cormorantUIFont(size: size, weight: weight)
+            return cormorantPlatformFont(size: size, weight: weight)
         case .serif:
-            let w = uiFontWeight(for: weight)
+            let w = platformFontWeight(for: weight)
+            #if canImport(UIKit)
             if let desc = UIFont.systemFont(ofSize: size, weight: w)
                 .fontDescriptor.withDesign(.serif) {
                 return UIFont(descriptor: desc, size: size)
             }
             return UIFont.systemFont(ofSize: size, weight: w)
+            #elseif canImport(AppKit)
+            let sysFont = NSFont.systemFont(ofSize: size, weight: w)
+            if let desc = sysFont.fontDescriptor.withDesign(.serif) {
+                return NSFont(descriptor: desc, size: size) ?? sysFont
+            }
+            return sysFont
+            #endif
         case .system:
-            return UIFont.systemFont(ofSize: size, weight: uiFontWeight(for: weight))
+            #if canImport(UIKit)
+            return UIFont.systemFont(ofSize: size, weight: platformFontWeight(for: weight))
+            #elseif canImport(AppKit)
+            return NSFont.systemFont(ofSize: size, weight: platformFontWeight(for: weight))
+            #endif
         }
     }
 
-    private static func uiFontWeight(for weight: Font.Weight) -> UIFont.Weight {
+    private static func platformFontWeight(for weight: Font.Weight) -> PlatformFont.Weight {
         if weight == .bold { return .bold }
         if weight == .semibold { return .semibold }
         if weight == .medium { return .medium }
@@ -200,18 +218,22 @@ struct AppFont {
         return .regular
     }
 
-    private static func cormorantUIFont(size: CGFloat, weight: Font.Weight) -> UIFont {
-        let variationKey = UIFontDescriptor.AttributeName(
+    private static func cormorantPlatformFont(size: CGFloat, weight: Font.Weight) -> PlatformFont {
+        let variationKey = PlatformFontDescriptor.AttributeName(
             rawValue: kCTFontVariationAttribute as String
         )
-        // Use family name instead of PostScript name for reliable variable font lookup.
-        let baseDescriptor = UIFontDescriptor(fontAttributes: [
+        let baseDescriptor = PlatformFontDescriptor(fontAttributes: [
             .family: cormorantFamily,
             variationKey: [wghtAxisTag: wghtValue(for: weight)]
         ])
+        #if canImport(UIKit)
         let italicTraits = UIFontDescriptor.SymbolicTraits.traitItalic
         let italicDescriptor = baseDescriptor.withSymbolicTraits(italicTraits) ?? baseDescriptor
         return UIFont(descriptor: italicDescriptor, size: size)
+        #elseif canImport(AppKit)
+        let italicDescriptor = baseDescriptor.withSymbolicTraits(.italic)
+        return NSFont(descriptor: italicDescriptor, size: size) ?? NSFont.systemFont(ofSize: size)
+        #endif
     }
 
     // MARK: - Variable Font Helpers
@@ -233,14 +255,20 @@ struct AppFont {
     /// on the font descriptor, avoiding SwiftUI's `.weight()` modifier which cannot
     /// update the weight on variable fonts registered via UIAppFonts.
     private static func cormorantFont(size: CGFloat, weight: Font.Weight) -> Font {
-        let variationKey = UIFontDescriptor.AttributeName(rawValue: kCTFontVariationAttribute as String)
-        let descriptor = UIFontDescriptor(fontAttributes: [
+        let variationKey = PlatformFontDescriptor.AttributeName(rawValue: kCTFontVariationAttribute as String)
+        let descriptor = PlatformFontDescriptor(fontAttributes: [
             .name: cormorantItalicVariable,
             variationKey: [wghtAxisTag: wghtValue(for: weight)]
         ])
+        #if canImport(UIKit)
         let italicTraits = UIFontDescriptor.SymbolicTraits.traitItalic
         let italicDescriptor = descriptor.withSymbolicTraits(italicTraits) ?? descriptor
         return Font(UIFont(descriptor: italicDescriptor, size: size))
+        #elseif canImport(AppKit)
+        let italicDescriptor = descriptor.withSymbolicTraits(.italic)
+        let font = NSFont(descriptor: italicDescriptor, size: size) ?? NSFont.systemFont(ofSize: size)
+        return Font(font)
+        #endif
     }
 
     private static func font(size: CGFloat, weight: Font.Weight) -> Font {
@@ -286,11 +314,25 @@ struct SectionHeader: ViewModifier {
 // Uses less space in landscape (compact vertical) to maximise reading area.
 
 struct AdaptiveTopPadding: ViewModifier {
+    #if os(iOS)
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    #endif
     let portrait: CGFloat
 
     func body(content: Content) -> some View {
+        #if os(iOS)
         content.padding(.top, verticalSizeClass == .compact ? 16 : portrait)
+        #else
+        content.padding(.top, portrait)
+        #endif
+    }
+}
+
+struct ReadableContentWidth: ViewModifier {
+    let maxWidth: CGFloat
+
+    func body(content: Content) -> some View {
+        content
     }
 }
 
@@ -307,5 +349,8 @@ extension View {
     func adaptiveTopPadding(_ portrait: CGFloat = 60) -> some View {
         modifier(AdaptiveTopPadding(portrait: portrait))
     }
-}
 
+    func readableContentWidth(_ maxWidth: CGFloat = AppLayout.readableDetailWidth) -> some View {
+        modifier(ReadableContentWidth(maxWidth: maxWidth))
+    }
+}

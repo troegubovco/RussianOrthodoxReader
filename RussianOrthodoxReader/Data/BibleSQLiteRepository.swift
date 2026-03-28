@@ -1,7 +1,7 @@
 import Foundation
 import SQLite3
 
-protocol BibleRepositoryProtocol {
+nonisolated protocol BibleRepositoryProtocol {
     var books: [BibleBook] { get }
     func books(for testament: Testament) -> [BibleBook]
     func chapter(bookId: String, chapter: Int) -> BibleChapter?
@@ -10,7 +10,7 @@ protocol BibleRepositoryProtocol {
     func firstAvailableChapter(bookId: String) -> String?
 }
 
-final class BibleSQLiteRepository: BibleRepositoryProtocol, @unchecked Sendable {
+nonisolated final class BibleSQLiteRepository: BibleRepositoryProtocol, @unchecked Sendable {
     static let shared = BibleSQLiteRepository()
 
     private var db: OpaquePointer?
@@ -98,7 +98,7 @@ final class BibleSQLiteRepository: BibleRepositoryProtocol, @unchecked Sendable 
 
     func firstAvailableChapter(bookId: String) -> String? {
         guard let book = bookById[bookId] else { return nil }
-        let chapter = max(1, min(book.chapterCount, 1))
+        let chapter = 1
         return BibleDataProvider.chapterKey(bookId: book.id, chapter: chapter)
     }
 

@@ -13,9 +13,14 @@ final class PersistenceController {
             ReadingReferenceEntity.self
         ])
 
+        // cloudKitDatabase: .none — this store is a local API cache and must not
+        // sync via CloudKit. Without this, SwiftData sees the CloudKit entitlement
+        // and tries to enable sync, which requires all attributes to be optional
+        // and forbids unique constraints — incompatible with this schema.
         let configuration = ModelConfiguration(
             schema: schema,
-            isStoredInMemoryOnly: inMemory
+            isStoredInMemoryOnly: inMemory,
+            cloudKitDatabase: .none
         )
 
         do {

@@ -10,6 +10,12 @@ struct ReaderSection: Identifiable, Hashable {
     let chapter: Int?
 }
 
+struct ReaderScrollRequest: Equatable {
+    let id: String
+    let animated: Bool
+    let token = UUID()
+}
+
 @MainActor
 final class ReaderViewModel: ObservableObject {
     @Published var title: String = ""
@@ -17,35 +23,32 @@ final class ReaderViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     /// Set after loading to tell the view which section to scroll to.
-    @Published var scrollToSectionID: String?
+    @Published var scrollRequest: ReaderScrollRequest?
 
     private var chapterBook: BibleBook?
-    /// Task handle for the background full-book load, so it can be cancelled
-    /// if the user navigates away before it finishes.
-    private var bookLoadTask: Task<Void, Never>?
+    private var loadTask: Task<Void, Never>?
 
-    func load(route: ReaderRoute) async {
-        // Cancel any in-flight background book load
-        bookLoadTask?.cancel()
-        bookLoadTask = nil
+    func load(route: ReaderRoute) {
+        loadTask?.cancel()
+        loadTask = Task {
+            scrollRequest = nil
+            isLoading = true
 
-        isLoading = true
+            switch route {
+            case let .chapter(bookId, chapter):
+                await loadBook(bookId: bookId, chapter: chapter)
+            case let .references(title, references):
+                await loadReferences(title: title, references: references)
+            }
 
-        switch route {
-        case let .chapter(bookId, chapter):
-            await loadBook(bookId: bookId, chapter: chapter)
-        case let .references(title, references):
-            await loadReferences(title: title, references: references)
+            guard !Task.isCancelled else { return }
+            isLoading = false
         }
-
-        isLoading = false
     }
 
     // MARK: - Private
 
-    /// Two-phase book loading:
-    /// Phase 1: Load the target chapter immediately so the user sees content.
-    /// Phase 2: Load all remaining chapters in the background and replace the sections array.
+    /// Load all chapters of the book at once, then scroll to the target chapter.
     private func loadBook(bookId: String, chapter: Int) async {
         guard let book = BibleDataProvider.book(id: bookId) else {
             title = "Чтение"
@@ -56,11 +59,25 @@ final class ReaderViewModel: ObservableObject {
         }
 
         let selectedChapter = min(max(1, chapter), max(1, book.chapterCount))
+        let chapterCount = book.chapterCount
 
-        // Phase 1: Load target chapter for instant display
-        let targetSection = await Self.buildChapterSection(bookId: bookId, chapter: selectedChapter)
+        let allSections: [ReaderSection] = await Task.detached(priority: .userInitiated) {
+            await withTaskGroup(of: (Int, ReaderSection?).self) { group in
+                for ch in 1...chapterCount {
+                    group.addTask {
+                        (ch, Self.buildChapterSection(bookId: bookId, chapter: ch))
+                    }
+                }
+                var indexed: [(Int, ReaderSection)] = []
+                indexed.reserveCapacity(chapterCount)
+                for await (ch, section) in group {
+                    if let section { indexed.append((ch, section)) }
+                }
+                return indexed.sorted(by: { $0.0 < $1.0 }).map(\.1)
+            }
+        }.value
 
-        guard let targetSection else {
+        guard !allSections.isEmpty else {
             title = "Чтение"
             sections = []
             errorMessage = "Глава не найдена в локальной базе"
@@ -69,42 +86,10 @@ final class ReaderViewModel: ObservableObject {
         }
 
         chapterBook = book
-        sections = [targetSection]
+        sections = allSections
         title = book.name
         errorMessage = nil
-        scrollToSectionID = targetSection.id
-
-        // Phase 2: Load all chapters in the background
-        let chapterCount = book.chapterCount
-        let targetID = targetSection.id
-
-        bookLoadTask = Task {
-            var allSections: [ReaderSection] = []
-            allSections.reserveCapacity(chapterCount)
-
-            for ch in 1...chapterCount {
-                guard !Task.isCancelled else { return }
-
-                if ch == selectedChapter {
-                    // Reuse the already-built target section
-                    allSections.append(targetSection)
-                } else if let section = await Self.buildChapterSection(bookId: bookId, chapter: ch) {
-                    allSections.append(section)
-                }
-            }
-
-            guard !Task.isCancelled else { return }
-
-            // Replace sections with the full book.
-            // First nil out scrollToSectionID, then set it after a tick,
-            // so .onChange fires even though the target ID is the same value.
-            scrollToSectionID = nil
-            sections = allSections
-            // Allow SwiftUI to process the sections change, then scroll.
-            try? await Task.sleep(for: .milliseconds(50))
-            guard !Task.isCancelled else { return }
-            scrollToSectionID = targetID
-        }
+        scrollRequest = ReaderScrollRequest(id: "\(bookId)-\(selectedChapter)", animated: false)
     }
 
     private func loadReferences(title: String, references: [ReadingReference]) async {
@@ -121,13 +106,13 @@ final class ReaderViewModel: ObservableObject {
                 // Defensive: ensure valid ClosedRange even if data is malformed
                 let safeStart = max(1, min(reference.verseStart, reference.verseEnd))
                 let safeEnd = max(safeStart, max(reference.verseStart, reference.verseEnd))
-                let verses = await repo.verses(bookId: reference.bookId, chapter: reference.chapter, range: safeStart...safeEnd)
+                let verses = repo.verses(bookId: reference.bookId, chapter: reference.chapter, range: safeStart...safeEnd)
 
                 let fallback = verses.isEmpty
                     ? [BibleVerse(id: reference.verseStart, number: reference.verseStart, synodal: "Текст этого отрывка не найден в локальной базе")]
                     : verses
 
-                let label = await repo.bookById[reference.bookId]?.abbreviation ?? reference.bookId.uppercased()
+                let label = repo.bookById[reference.bookId]?.abbreviation ?? reference.bookId.uppercased()
                 let subtitle: String
                 if reference.verseStart == reference.verseEnd {
                     subtitle = "\(label) \(reference.chapter):\(reference.verseStart)"
@@ -154,20 +139,18 @@ final class ReaderViewModel: ObservableObject {
         errorMessage = built.isEmpty ? "Нет доступных отрывков для отображения" : nil
     }
 
-    private static func buildChapterSection(bookId: String, chapter: Int) async -> ReaderSection? {
+    nonisolated private static func buildChapterSection(bookId: String, chapter: Int) -> ReaderSection? {
         let repo = BibleSQLiteRepository.shared
-        return await Task.detached(priority: .userInitiated) {
-            guard let chapterData = await repo.chapter(bookId: bookId, chapter: chapter) else {
-                return nil
-            }
-            return ReaderSection(
-                id: chapterData.id,
-                title: chapterData.bookName,
-                subtitle: "Глава \(chapterData.chapter)",
-                verses: chapterData.verses,
-                bookId: chapterData.bookId,
-                chapter: chapterData.chapter
-            )
-        }.value
+        guard let chapterData = repo.chapter(bookId: bookId, chapter: chapter) else {
+            return nil
+        }
+        return ReaderSection(
+            id: chapterData.id,
+            title: chapterData.bookName,
+            subtitle: "Глава \(chapterData.chapter)",
+            verses: chapterData.verses,
+            bookId: chapterData.bookId,
+            chapter: chapterData.chapter
+        )
     }
 }

@@ -2,14 +2,14 @@ import Foundation
 
 // MARK: - Bible Structure
 
-enum Testament: String, CaseIterable, Identifiable {
+nonisolated enum Testament: String, CaseIterable, Identifiable {
     case old = "Ветхий Завет"
     case new = "Новый Завет"
 
     var id: String { rawValue }
 }
 
-struct BibleBook: Identifiable, Hashable {
+nonisolated struct BibleBook: Identifiable, Hashable {
     let id: String
     let name: String
     let abbreviation: String
@@ -17,7 +17,7 @@ struct BibleBook: Identifiable, Hashable {
     let chapterCount: Int
 }
 
-struct BibleChapter: Identifiable, Hashable {
+nonisolated struct BibleChapter: Identifiable, Hashable {
     let id: String
     let bookId: String
     let bookName: String
@@ -25,13 +25,13 @@ struct BibleChapter: Identifiable, Hashable {
     let verses: [BibleVerse]
 }
 
-struct BibleVerse: Identifiable, Hashable {
+nonisolated struct BibleVerse: Identifiable, Hashable {
     let id: Int
     let number: Int
     let synodal: String
 }
 
-enum ReaderRoute: Hashable, Identifiable {
+nonisolated enum ReaderRoute: Hashable, Identifiable {
     case chapter(bookId: String, chapter: Int)
     case references(title: String, references: [ReadingReference])
 
@@ -80,7 +80,7 @@ extension ReaderRoute: Codable {
 
 // MARK: - Bible Data Provider
 
-struct BibleDataProvider {
+nonisolated struct BibleDataProvider {
     private static let repository = BibleSQLiteRepository.shared
 
     static var books: [BibleBook] {

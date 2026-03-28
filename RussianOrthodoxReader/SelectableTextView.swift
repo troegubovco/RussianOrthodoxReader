@@ -1,12 +1,15 @@
 import SwiftUI
-import UIKit
 
 /// A non-editable text view that allows native word selection.
 /// When the user selects text, a "Словарь" option appears in the context menu
 /// that triggers the `onWordSelected` callback.
+
+#if os(iOS)
+import UIKit
+
 struct SelectableTextView: UIViewRepresentable {
     let attributedText: NSAttributedString
-    let backgroundColor: UIColor
+    let backgroundColor: PlatformColor
     var onWordSelected: ((String) -> Void)?
 
     func makeUIView(context: Context) -> UITextView {
@@ -81,6 +84,94 @@ struct SelectableTextView: UIViewRepresentable {
     }
 }
 
+#elseif os(macOS)
+import AppKit
+
+struct SelectableTextView: NSViewRepresentable {
+    let attributedText: NSAttributedString
+    let backgroundColor: PlatformColor
+    var onWordSelected: ((String) -> Void)?
+
+    func makeNSView(context: Context) -> NSScrollView {
+        let scrollView = NSScrollView()
+        scrollView.hasVerticalScroller = false
+        scrollView.hasHorizontalScroller = false
+        scrollView.drawsBackground = false
+
+        let textView = DictionaryTextView()
+        textView.isEditable = false
+        textView.isSelectable = true
+        textView.drawsBackground = true
+        textView.backgroundColor = backgroundColor
+        textView.textContainerInset = .zero
+        textView.textContainer?.lineFragmentPadding = 0
+        textView.isVerticallyResizable = true
+        textView.isHorizontallyResizable = false
+        textView.autoresizingMask = [.width]
+        textView.textStorage?.setAttributedString(attributedText)
+        textView.onWordSelected = onWordSelected
+
+        scrollView.documentView = textView
+        return scrollView
+    }
+
+    func updateNSView(_ scrollView: NSScrollView, context: Context) {
+        guard let textView = scrollView.documentView as? DictionaryTextView else { return }
+        textView.textStorage?.setAttributedString(attributedText)
+        textView.backgroundColor = backgroundColor
+        textView.onWordSelected = onWordSelected
+    }
+
+    func sizeThatFits(
+        _ proposal: ProposedViewSize,
+        nsView: NSScrollView,
+        context: Context
+    ) -> CGSize? {
+        guard let textView = nsView.documentView as? NSTextView,
+              let width = proposal.width, width > 0,
+              let layoutManager = textView.layoutManager,
+              let textContainer = textView.textContainer else { return nil }
+        textContainer.containerSize = NSSize(width: width, height: CGFloat.greatestFiniteMagnitude)
+        layoutManager.ensureLayout(for: textContainer)
+        let rect = layoutManager.usedRect(for: textContainer)
+        return CGSize(width: width, height: rect.height)
+    }
+}
+
+class DictionaryTextView: NSTextView {
+    var onWordSelected: ((String) -> Void)?
+
+    override func menu(for event: NSEvent) -> NSMenu? {
+        let menu = super.menu(for: event) ?? NSMenu()
+
+        let selectedRange = self.selectedRange()
+        if selectedRange.length > 0,
+           let text = self.string as NSString? {
+            let selected = text.substring(with: selectedRange)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if !selected.isEmpty {
+                let item = NSMenuItem(
+                    title: "Словарь",
+                    action: #selector(lookupWord(_:)),
+                    keyEquivalent: ""
+                )
+                item.representedObject = selected
+                item.target = self
+                menu.insertItem(item, at: 0)
+                menu.insertItem(.separator(), at: 1)
+            }
+        }
+        return menu
+    }
+
+    @objc private func lookupWord(_ sender: NSMenuItem) {
+        guard let word = sender.representedObject as? String else { return }
+        onWordSelected?(word)
+    }
+}
+
+#endif
+
 // MARK: - Word Definition Sheet
 
 /// A half-sheet that shows dictionary results for a selected word.
@@ -106,7 +197,9 @@ struct WordDefinitionSheet: View {
             }
             .background(theme.background.ignoresSafeArea())
             .navigationTitle(word)
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Закрыть") { dismiss() }

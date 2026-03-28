@@ -30,6 +30,38 @@ struct SettingsView: View {
                     }
                     .cardStyle()
 
+                    VStack(alignment: .leading, spacing: 12) {
+                        Toggle(isOn: $appState.iCloudSyncEnabled) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Синхронизация через iCloud")
+                                    .font(AppFont.regular(typ.subheadline))
+                                    .foregroundColor(theme.text)
+
+                                Text("Синхронизирует только место чтения между вашими устройствами.")
+                                    .font(AppFont.regular(typ.caption))
+                                    .foregroundColor(theme.muted)
+                            }
+                        }
+                        .tint(theme.accent)
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(appState.readingSyncStatusTitle)
+                                .font(AppFont.regular(typ.caption))
+                                .foregroundColor(theme.text)
+
+                            Text(appState.readingSyncStatusDetail)
+                                .font(AppFont.regular(typ.caption))
+                                .foregroundColor(theme.muted)
+                        }
+
+                        Text("В iCloud сохраняются только книга, глава, стих и время последнего обновления. Данные находятся в вашей приватной базе CloudKit.")
+                            .font(AppFont.regular(typ.caption))
+                            .foregroundColor(theme.muted)
+                    }
+                    .padding(20)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .cardStyle()
+
                     // Reading preferences
                     VStack(spacing: 0) {
                         VStack(alignment: .leading, spacing: 12) {
@@ -177,6 +209,7 @@ struct SettingsView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .readableContentWidth()
                 .padding(.horizontal, AppLayout.horizontalInset(isLandscape: isLandscape))
                 .padding(.vertical, isLandscape ? AppLayout.verticalPaddingLandscape : 0)
             }
@@ -192,7 +225,9 @@ struct SettingsView: View {
                 Section {
                     TextField("Ключ API", text: $apiKeyDraft)
                         .autocorrectionDisabled()
+                        #if os(iOS)
                         .textInputAutocapitalization(.never)
+                        #endif
                 } header: {
                     Text("Ключ API Азбука.ру")
                 } footer: {
@@ -200,7 +235,9 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Ключ API")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Отмена") {

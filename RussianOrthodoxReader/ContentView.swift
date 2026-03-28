@@ -9,12 +9,14 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
+    @Environment(\.scenePhase) private var scenePhase
     @State private var readerRoute: ReaderRoute? = nil
     @State private var pendingRoute: ReaderRoute? = nil
     @State private var loadedTabs: Set<AppState.Tab> = [.today]
     /// Controls whether the reader layer is visible. The reader view stays in the
     /// hierarchy (to preserve scroll position) whenever `readerRoute != nil`.
     @State private var isReadingMode: Bool = false
+    @State private var activeReaderChapterRoute: ReaderRoute? = nil
 
     private let theme = OrthodoxColors.fallback
 
@@ -23,6 +25,9 @@ struct ContentView: View {
             theme.background.ignoresSafeArea()
 
             // Tab layer — always rendered; hidden while reading to preserve tab state.
+            #if os(macOS)
+            tabLayer
+            #else
             tabLayer
                 .opacity(isReadingMode ? 0 : 1)
                 .allowsHitTesting(!isReadingMode)
@@ -32,30 +37,33 @@ struct ContentView: View {
             if let route = readerRoute {
                 ReaderView(
                     route: route,
-                    onBack: {
+                    onBack: { currentRoute in
+                        persistCurrentReaderRoute(currentRoute)
                         withAnimation(.easeInOut(duration: 0.2)) {
                             isReadingMode = false
                         }
-                        // Brief delay so the fade completes before removing the view.
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                            readerRoute = nil
-                        }
                     },
-                    onSwitchTab: { tab in
+                    onSwitchTab: { tab, currentRoute in
+                        persistCurrentReaderRoute(currentRoute)
                         withAnimation(.easeInOut(duration: 0.2)) {
                             isReadingMode = false
                             appState.selectedTab = tab
                         }
+                    },
+                    onVisibleRouteChange: { route in
+                        activeReaderChapterRoute = route
                     }
                 )
                 .opacity(isReadingMode ? 1 : 0)
                 .allowsHitTesting(isReadingMode)
             }
+            #endif
 
             if appState.showPrayerOverlay {
                 PrayerOverlay {
                     appState.markPrayerRead()
                     if let pending = pendingRoute {
+                        persistCurrentReaderRoute(pending)
                         readerRoute = pending
                         pendingRoute = nil
                         withAnimation(.easeInOut(duration: 0.2)) {
@@ -71,12 +79,23 @@ struct ContentView: View {
             // Restore reading position from the previous session.
             if readerRoute == nil, let saved = appState.lastReadingRoute {
                 readerRoute = saved
+                activeReaderChapterRoute = saved
             }
         }
-        .onChange(of: readerRoute) { _, newRoute in
-            // Persist only chapter routes (references are date-specific).
+        .onChange(of: appState.lastReadingRoute) { _, newRoute in
+            // Pick up cloud-synced reading position when not actively reading.
             if let newRoute, case .chapter = newRoute {
-                appState.lastReadingRoute = newRoute
+                activeReaderChapterRoute = newRoute
+            }
+            if !isReadingMode, let newRoute, newRoute != readerRoute {
+                DispatchQueue.main.async {
+                    readerRoute = newRoute
+                }
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .inactive || newPhase == .background {
+                persistCurrentReaderRoute()
             }
         }
     }
@@ -87,10 +106,58 @@ struct ContentView: View {
         return { self.resumeReading() }
     }
 
+    #if os(macOS)
+    /// Deferred binding so that NavigationSplitView's selection change is applied
+    /// on the next run-loop pass, avoiding "Publishing changes from within view
+    /// updates" when SwiftUI mutates the selection during a layout pass.
+    private var deferredTabSelection: Binding<AppState.Tab?> {
+        Binding<AppState.Tab?>(
+            get: { appState.selectedTab },
+            set: { newTab in
+                guard let tab = newTab else { return }
+                DispatchQueue.main.async {
+                    appState.selectedTab = tab
+                }
+            }
+        )
+    }
+    #endif
+
     // MARK: - Tab layer
 
     @ViewBuilder
     private var tabLayer: some View {
+        #if os(macOS)
+        NavigationSplitView {
+            List(AppState.Tab.allCases, id: \.self, selection: deferredTabSelection) { tab in
+                Label(tab.rawValue, systemImage: tab.icon)
+            }
+            .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 240)
+        } detail: {
+            if isReadingMode, let route = readerRoute {
+                ReaderView(
+                    route: route,
+                    onBack: { currentRoute in
+                        persistCurrentReaderRoute(currentRoute)
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isReadingMode = false
+                        }
+                    },
+                    onVisibleRouteChange: { route in
+                        activeReaderChapterRoute = route
+                    }
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(theme.background)
+            } else {
+                tabContent
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(theme.background)
+            }
+        }
+        .navigationTitle("")
+        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+        #else
         ZStack {
             if loadedTabs.contains(.today) {
                 TodayView(onOpenReading: openReading)
@@ -131,6 +198,21 @@ struct ContentView: View {
                 loadedTabs.insert(newTab)
             }
         }
+        #endif
+    }
+
+    @ViewBuilder
+    private var tabContent: some View {
+        switch appState.selectedTab {
+        case .today:
+            TodayView(onOpenReading: openReading)
+        case .bible:
+            BibleView(onSelectChapter: openReading, onResume: resumeAction)
+        case .calendar:
+            CalendarView()
+        case .settings:
+            SettingsView()
+        }
     }
 
     // MARK: - Actions
@@ -143,6 +225,7 @@ struct ContentView: View {
 
     private func openReading(_ route: ReaderRoute) {
         if appState.requestReading() {
+            persistCurrentReaderRoute(route)
             readerRoute = route
             withAnimation(.easeInOut(duration: 0.2)) {
                 isReadingMode = true
@@ -150,6 +233,27 @@ struct ContentView: View {
         } else {
             pendingRoute = route
         }
+    }
+
+    private func persistCurrentReaderRoute(_ candidate: ReaderRoute? = nil) {
+        guard let route = resolvedChapterRoute(candidate) else { return }
+        activeReaderChapterRoute = route
+        appState.recordLocalReadingRoute(route)
+        appState.syncReadingRouteToCloud(route: route)
+    }
+
+    private func resolvedChapterRoute(_ candidate: ReaderRoute? = nil) -> ReaderRoute? {
+        if let candidate {
+            guard case .chapter = candidate else { return nil }
+            return candidate
+        }
+        if let activeReaderChapterRoute, case .chapter = activeReaderChapterRoute {
+            return activeReaderChapterRoute
+        }
+        if let readerRoute, case .chapter = readerRoute {
+            return readerRoute
+        }
+        return nil
     }
 }
 

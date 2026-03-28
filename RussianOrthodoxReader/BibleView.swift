@@ -53,6 +53,7 @@ struct BibleView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .readableContentWidth()
                 .padding(.horizontal, AppLayout.horizontalInset(isLandscape: isLandscape))
                 .padding(.vertical, isLandscape ? AppLayout.verticalPaddingLandscape : 0)
             }
@@ -159,12 +160,18 @@ private struct ChapterPickerSheet: View {
                             Text("Глава \(value)").tag(value)
                         }
                     }
+                    #if os(iOS)
                     .pickerStyle(.wheel)
                     .frame(maxHeight: 180)
+                    #else
+                    .pickerStyle(.menu)
+                    #endif
                 }
             }
             .navigationTitle("Выбор главы")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Отмена") {

@@ -132,6 +132,7 @@ struct CalendarView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .readableContentWidth(AppLayout.readableCalendarWidth)
                 .padding(.horizontal, AppLayout.horizontalInset(isLandscape: isLandscape))
                 .padding(.vertical, isLandscape ? AppLayout.verticalPaddingLandscape : 0)
             }
