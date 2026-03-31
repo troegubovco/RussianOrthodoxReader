@@ -33,6 +33,24 @@ def pascha_date(year: int) -> date:
     return julian + timedelta(days=offset)
 
 
+# Moveable feast patterns — these depend on Pascha and must NOT be stored in fixed_saints.
+# They belong in moveable_cycle.summary_title instead.
+MOVEABLE_FEAST_PATTERNS = [
+    "Воскрешение прав. Ла́заря",
+    "Вход Господень в Иерусалим",
+    "Светлое Христово Воскресение",
+    "Вознесение Господне",
+    "День Святой Троицы",
+    "Пятидесятница",
+    "День Святого Духа",
+]
+
+
+def is_moveable_feast(saint_name: str) -> bool:
+    """Check if a saint/feast name is actually a moveable feast tied to Pascha."""
+    return any(pat in saint_name for pat in MOVEABLE_FEAST_PATTERNS)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Build liturgical SQLite from scraped JSON")
     parser.add_argument("--input", type=str, default=None)
@@ -110,12 +128,22 @@ def main():
         d = date.fromisoformat(entry["date"])
         offset = (d - pascha).days
 
-        # ── Fixed saints (by Gregorian month-day) ──
+        # ── Separate moveable feasts from fixed saints ──
         saints = entry.get("saints", [])
-        if saints:
+        moveable_title = entry.get("summary_title")
+        fixed_saints = []
+        for s in saints:
+            if is_moveable_feast(s):
+                if moveable_title is None:
+                    moveable_title = s
+            else:
+                fixed_saints.append(s)
+
+        # ── Fixed saints (by Gregorian month-day) ──
+        if fixed_saints:
             cur.execute(
                 "INSERT OR REPLACE INTO fixed_saints (month, day, saints_json) VALUES (?, ?, ?)",
-                (d.month, d.day, json.dumps(saints, ensure_ascii=False)),
+                (d.month, d.day, json.dumps(fixed_saints, ensure_ascii=False)),
             )
             saints_count += 1
 
@@ -140,7 +168,7 @@ def main():
                 other_json,
                 entry.get("tone"),
                 entry.get("fasting"),
-                entry.get("summary_title"),
+                moveable_title,
             ),
         )
         if apostol or gospel:
