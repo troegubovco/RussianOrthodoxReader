@@ -3,8 +3,6 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.userFontSize) private var userFontSize
-    @State private var showAPIKeySheet = false
-    @State private var apiKeyDraft = ""
     private let theme = OrthodoxColors.fallback
 
     private var typ: AppTypography { AppTypography(base: userFontSize) }
@@ -139,42 +137,6 @@ struct SettingsView: View {
                     }
                     .cardStyle()
 
-                    // Calendar source (Azbyka API)
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Источник календаря")
-                            .font(AppFont.regular(typ.subheadline))
-                            .foregroundColor(theme.text)
-
-                        let hasKey = !(UserDefaults.standard.string(forKey: "azbyka_api_key") ?? "").isEmpty
-                        HStack(spacing: 8) {
-                            Circle()
-                                .fill(hasKey ? Color.green : theme.muted)
-                                .frame(width: 8, height: 8)
-                            Text(hasKey ? "Полный API (чтения, пост, глас)" : "Публичная страница Azbyka (чтения и память)")
-                                .font(AppFont.regular(typ.caption))
-                                .foregroundColor(theme.text)
-                        }
-
-                        Button {
-                            apiKeyDraft = UserDefaults.standard.string(forKey: "azbyka_api_key") ?? ""
-                            showAPIKeySheet = true
-                        } label: {
-                            Text(hasKey ? "Изменить ключ API" : "Добавить ключ API")
-                                .font(AppFont.regular(typ.footnote))
-                                .foregroundColor(theme.accent)
-                        }
-
-                        Text("Без ключа приложение читает публичную страницу Azbyka. Ключ нужен только для полного API, если он у вас есть.")
-                            .font(AppFont.regular(typ.caption))
-                            .foregroundColor(theme.muted)
-                    }
-                    .padding(20)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .cardStyle()
-                    .sheet(isPresented: $showAPIKeySheet) {
-                        apiKeySheet
-                    }
-
                     // About
                     VStack(alignment: .leading, spacing: 8) {
                         Text("О приложении")
@@ -218,43 +180,6 @@ struct SettingsView: View {
         .background(theme.background.ignoresSafeArea())
     }
 
-    @ViewBuilder
-    private var apiKeySheet: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    TextField("Ключ API", text: $apiKeyDraft)
-                        .autocorrectionDisabled()
-                        #if os(iOS)
-                        .textInputAutocapitalization(.never)
-                        #endif
-                } header: {
-                    Text("Ключ API Азбука.ру")
-                } footer: {
-                    Text("Зарегистрируйтесь на azbyka.ru/days/register/userapi и дождитесь одобрения. Затем введите полученный ключ.")
-                }
-            }
-            .navigationTitle("Ключ API")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Отмена") {
-                        showAPIKeySheet = false
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Сохранить") {
-                        let trimmed = apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-                        UserDefaults.standard.set(trimmed.isEmpty ? nil : trimmed, forKey: "azbyka_api_key")
-                        showAPIKeySheet = false
-                    }
-                }
-            }
-        }
-        .presentationDetents([.medium])
-    }
 }
 
 // MARK: - Settings Toggle Row

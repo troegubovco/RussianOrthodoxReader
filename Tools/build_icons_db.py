@@ -32,7 +32,8 @@ def create_schema(conn: sqlite3.Connection):
             biography       TEXT,
             total_images    INTEGER DEFAULT 0, -- total on pravicon.com
             scraped_images  INTEGER DEFAULT 0, -- how many URLs we captured
-            source_url      TEXT               -- pravicon.com URL
+            source_url      TEXT,              -- pravicon.com URL
+            representative_image_id INTEGER    -- selected build-time thumbnail for app UI
         );
 
         -- Individual images with source URLs and local file references
@@ -44,6 +45,8 @@ def create_schema(conn: sqlite3.Connection):
             local_thumb     TEXT,                  -- local file path (thumbs/category/id.jpg)
             local_full      TEXT,                  -- local file path (full/category/id.jpg)
             ordinal         INTEGER DEFAULT 0,     -- position in the entry's image list
+            feature_row     INTEGER,               -- row in the binary embedding matrix
+            feature_source  TEXT,                  -- full | thumb
             FOREIGN KEY (icon_id) REFERENCES icons(icon_id)
         );
 
@@ -71,7 +74,9 @@ def create_schema(conn: sqlite3.Connection):
         -- Indexes
         CREATE INDEX IF NOT EXISTS idx_icons_category ON icons(category);
         CREATE INDEX IF NOT EXISTS idx_icons_name ON icons(name);
+        CREATE INDEX IF NOT EXISTS idx_icons_representative_image ON icons(representative_image_id);
         CREATE INDEX IF NOT EXISTS idx_images_icon_id ON images(icon_id);
+        CREATE INDEX IF NOT EXISTS idx_images_feature_row ON images(feature_row);
         CREATE INDEX IF NOT EXISTS idx_icon_keywords_keyword ON icon_keywords(keyword_id);
     """)
 

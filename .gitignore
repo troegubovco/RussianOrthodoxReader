@@ -11,3 +11,17 @@ Tools/build_bible_db/rus_modern.sqlite
 # HTML probe output
 Tools/build_bible_db/probe_gen1.html
 annot.opcorpora.xml
+
+# Pravicon icon data (large image/ML datasets — rebuild via scraping pipeline)
+Tools/data/pravicon_images/
+Tools/data/pravicon_index.json
+Tools/data/pravicon_details.json
+Tools/data/icons.sqlite
+Tools/data/*.sqlite-shm
+Tools/data/*.sqlite-wal
+Tools/data/ml_dataset/
+Tools/__pycache__/
+RussianOrthodoxReader/Resources/Icons/
+
+# Create ML project
+IconClassifier.mlproj/

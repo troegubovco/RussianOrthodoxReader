@@ -101,6 +101,7 @@ class AppState: ObservableObject {
     enum Tab: String, CaseIterable {
         case today    = "Сегодня"
         case bible    = "Библия"
+        case identify = "Иконы"
         case calendar = "Календарь"
         case settings = "Настройки"
 
@@ -108,6 +109,7 @@ class AppState: ObservableObject {
             switch self {
             case .today:    return "sun.max"
             case .bible:    return "book"
+            case .identify: return "camera.viewfinder"
             case .calendar: return "calendar"
             case .settings: return "gearshape"
             }

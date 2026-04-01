@@ -14,7 +14,10 @@
 		91BFE46E2F509EBC00A6715D /* Exceptions for "RussianOrthodoxReader" folder in "RussianOrthodoxReader" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				IMPLEMENTATION_SUMMARY.md,
+				"implementation-changes-summary03:27:26.md",
 				Info.plist,
+				PERFORMANCE_OPTIMIZATIONS.md,
 			);
 			target = 91B018832F5009350002FB19 /* RussianOrthodoxReader */;
 		};
@@ -271,7 +274,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = RussianOrthodoxReader/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "СинодальнаяБиблия";
+				INFOPLIST_KEY_CFBundleDisplayName = "Синодал";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -322,7 +325,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = RussianOrthodoxReader/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "СинодальнаяБиблия";
+				INFOPLIST_KEY_CFBundleDisplayName = "Синодал";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;

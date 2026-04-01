@@ -26,7 +26,7 @@ enum LiturgicalRepositoryError: LocalizedError {
 @MainActor
 final class LiturgicalRepository: LiturgicalRepositoryProtocol {
     static let shared = LiturgicalRepository()
-    private static let currentSourceVersion = "azbyka.v2"
+    private static let currentSourceVersion = "azbyka.v3"
 
     // MARK: - Prefetch gate
     /// UserDefaults key that records when the last full prefetch ran.

@@ -174,6 +174,12 @@ struct ContentView: View {
                 .zIndex(appState.selectedTab == .bible ? 1 : 0)
             }
 
+            if loadedTabs.contains(.identify) {
+                IdentifyView()
+                    .opacity(appState.selectedTab == .identify ? 1 : 0)
+                    .zIndex(appState.selectedTab == .identify ? 1 : 0)
+            }
+
             if loadedTabs.contains(.calendar) {
                 CalendarView()
                     .opacity(appState.selectedTab == .calendar ? 1 : 0)
@@ -208,6 +214,8 @@ struct ContentView: View {
             TodayView(onOpenReading: openReading)
         case .bible:
             BibleView(onSelectChapter: openReading, onResume: resumeAction)
+        case .identify:
+            IdentifyView()
         case .calendar:
             CalendarView()
         case .settings:
@@ -322,7 +330,7 @@ struct TabBarView: View {
             appState.calendarResetTrigger += 1
         case .bible:
             appState.bibleResetTrigger += 1
-        case .today, .settings:
+        case .today, .identify, .settings:
             break
         }
     }
