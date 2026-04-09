@@ -1,6 +1,6 @@
 # Синодал (Synodal) — v1.1
 
-## Что нового в v0.2
+## Что нового в v1.1
 
 ### 1. Azbyka.ru Calendar API (вместо orthocal)
 
