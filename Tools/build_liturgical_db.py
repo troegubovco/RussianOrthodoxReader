@@ -148,6 +148,56 @@ def main():
 
     conn.commit()
 
+    # ── Liturgical fasting overrides ─────────────────────────────────────────
+    # Azbyka.ru's simplified HTML often reports all of Holy Week as "Постный день"
+    # (regular fast), when Orthodox liturgical tradition requires "Строгий пост"
+    # (strict fast) for Holy Mon–Sat and "Разрешается рыба" for Palm Sunday and
+    # Lazarus Saturday.  We apply correct values here after the bulk insert.
+    #
+    # For the Great Lent period (offsets –48 to –9) we apply per-weekday logic:
+    #   Sundays (offset % 7 == 0)  → "Разрешается елей" (wine & oil)
+    #   Saturdays (offset % 7 == 6) → "Разрешается елей" (wine & oil)
+    #   Weekdays                    → "Строгий пост"
+    # Special exceptions: Lazarus Saturday (offset –8) → "Разрешается рыба"
+    print("\nApplying liturgical fasting overrides...")
+
+    # Great Lent weekdays and weekends (offsets –48 to –9, before Holy Week)
+    for off in range(-48, -8):   # –48 (Clean Monday) through –9
+        weekday = off % 7  # 0 = Sunday, 6 = Saturday (Python % always ≥ 0)
+        if weekday == 0:
+            fasting_val = "Разрешается елей"   # Sunday of Lent: wine & oil
+        elif weekday == 6:
+            fasting_val = "Разрешается елей"   # Saturday of Lent: wine & oil
+        else:
+            fasting_val = "Строгий пост"        # Mon–Fri of Lent: strict fast
+        cur.execute(
+            "UPDATE moveable_cycle SET fasting = ? WHERE pascha_offset = ?",
+            (fasting_val, off),
+        )
+
+    # Lazarus Saturday (offset –8): fish allowed
+    cur.execute("UPDATE moveable_cycle SET fasting = 'Разрешается рыба' WHERE pascha_offset = -8")
+
+    # Holy Week overrides (offsets –7 to –1)
+    holy_week = {
+        -7: "Разрешается рыба",  # Palm Sunday (Вербное воскресенье): fish allowed
+        -6: "Строгий пост",      # Holy Monday
+        -5: "Строгий пост",      # Holy Tuesday
+        -4: "Строгий пост",      # Holy Wednesday
+        -3: "Строгий пост",      # Holy Thursday
+        -2: "Строгий пост",      # Great Friday (strictest fast)
+        -1: "Строгий пост",      # Great Saturday
+    }
+    for off, fasting_val in holy_week.items():
+        cur.execute(
+            "UPDATE moveable_cycle SET fasting = ? WHERE pascha_offset = ?",
+            (fasting_val, off),
+        )
+        print(f"  offset {off:3d} → '{fasting_val}'")
+
+    conn.commit()
+    print("  Fasting overrides applied.")
+
     # Print stats
     cur.execute("SELECT COUNT(*) FROM fixed_saints")
     total_saints = cur.fetchone()[0]
