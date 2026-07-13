@@ -1,0 +1,141 @@
+{
+  "_comment": "Категории с parent — подкатегории; у родителя pages нет. Слаги morning/evening/main/canons/bogorodice сохранены (слаги молитв от них зависят).",
+  "categories": [
+    {
+      "slug": "daily",
+      "title": "Ежедневное правило",
+      "subtitle": "Утренние, вечерние, главные молитвы",
+      "icon": "sun.max",
+      "sort_order": 1,
+      "pages": []
+    },
+    {
+      "slug": "morning",
+      "parent": "daily",
+      "title": "Утренние молитвы",
+      "subtitle": "Начало дня с Богом",
+      "icon": "sunrise",
+      "sort_order": 1,
+      "pages": [
+        { "kind": "parallel", "url": "https://azbyka.ru/molitvoslov/molitvy-utrennie-s-parallelnym-perevodom.html" }
+      ]
+    },
+    {
+      "slug": "evening",
+      "parent": "daily",
+      "title": "Вечерние молитвы",
+      "subtitle": "Молитвы на сон грядущим",
+      "icon": "moon.stars",
+      "sort_order": 2,
+      "pages": [
+        { "kind": "parallel", "url": "https://azbyka.ru/molitvoslov/molitvy-na-son-grjadushhim-s-parallelnym-perevodom.html" }
+      ]
+    },
+    {
+      "slug": "main",
+      "parent": "daily",
+      "title": "Главные молитвы",
+      "subtitle": "Отче наш, Иисусова молитва, правило прп. Серафима",
+      "icon": "star",
+      "sort_order": 3,
+      "pages": [
+        { "kind": "plain", "url": "https://azbyka.ru/molitvoslov/molitva-gospodnya-otche-nash.html" },
+        { "kind": "plain", "url": "https://azbyka.ru/molitvoslov/iisusova-molitva.html" },
+        { "kind": "plain", "url": "https://azbyka.ru/molitvoslov/carju-nebesnyj.html" },
+        { "kind": "plain", "url": "https://azbyka.ru/molitvoslov/slavoslovie.html" }
+      ]
+    },
+    {
+      "slug": "communion-prep",
+      "title": "Подготовка к Причащению",
+      "subtitle": "Последование и благодарственные молитвы",
+      "icon": "cup.and.saucer",
+      "sort_order": 4,
+      "pages": []
+    },
+    {
+      "slug": "communion",
+      "parent": "communion-prep",
+      "title": "Последование ко Причащению",
+      "subtitle": "Псалмы, канон и молитвы",
+      "icon": "book",
+      "sort_order": 1,
+      "pages": [
+        { "kind": "plain", "url": "https://azbyka.ru/molitvoslov/posledovanie-ko-svyatomu-prichashheniyu.html" }
+      ]
+    },
+    {
+      "slug": "thanksgiving",
+      "parent": "communion-prep",
+      "title": "Благодарственные молитвы",
+      "subtitle": "По Святом Причащении",
+      "icon": "hands.sparkles",
+      "sort_order": 2,
+      "pages": [
+        { "kind": "plain", "heading": "h3", "url": "https://azbyka.ru/molitvoslov/blagodarstvennye-molitvy-po-svyatom-prichashhenii.html" }
+      ]
+    },
+    {
+      "slug": "canons",
+      "title": "Каноны",
+      "subtitle": "Покаянный, Богородице, Ангелу хранителю",
+      "icon": "book.closed",
+      "sort_order": 6,
+      "pages": [
+        { "kind": "plain", "heading": "h3", "merge_title": "Канон покаянный ко Господу нашему Иисусу Христу", "url": "https://azbyka.ru/molitvoslov/kanon-pokayannyj-ko-gospodu-nashemu-iisusu-xristu.html" },
+        { "kind": "plain", "heading": "h3", "merge_title": "Канон молебный ко Пресвятой Богородице", "url": "https://azbyka.ru/molitvoslov/kanon-molebnyj-ko-presvyatoj-bogorodice.html" },
+        { "kind": "plain", "heading": "h3", "merge_title": "Канон Ангелу хранителю", "url": "https://azbyka.ru/molitvoslov/kanon-angelu-xranitelyu.html" }
+      ]
+    },
+    {
+      "slug": "bogorodice",
+      "title": "Богородице",
+      "subtitle": "Молитвы ко Пресвятой Богородице",
+      "icon": "sparkles",
+      "sort_order": 7,
+      "pages": [
+        { "kind": "plain", "url": "https://azbyka.ru/molitvoslov/molitvy-ko-presvyatoj-bogorodice.html" }
+      ]
+    },
+    {
+      "slug": "potreba",
+      "title": "На разную потребу",
+      "subtitle": "О здравии, в пути, в скорби",
+      "icon": "leaf",
+      "sort_order": 8,
+      "pages": []
+    },
+    {
+      "slug": "potreba-health",
+      "parent": "potreba",
+      "title": "О здравии и болящих",
+      "icon": "cross.case",
+      "sort_order": 1,
+      "pages": [
+        { "kind": "plain", "url": "https://azbyka.ru/molitvoslov/molitvy-na-vsyakuyu-nemoshh.html" },
+        { "kind": "plain", "url": "https://azbyka.ru/molitvoslov/molitvy-o-zdravii-rebenka.html" }
+      ]
+    },
+    {
+      "slug": "potreba-path",
+      "parent": "potreba",
+      "title": "О путешествующих",
+      "icon": "airplane",
+      "sort_order": 2,
+      "pages": [
+        { "kind": "plain", "url": "https://azbyka.ru/molitvoslov/molitva-ko-presvjatoj-bogorodice-ot-cheloveka-sobirajushhegosja-v-put.html" }
+      ]
+    },
+    {
+      "slug": "potreba-sorrow",
+      "parent": "potreba",
+      "title": "В скорби и унынии",
+      "icon": "cloud.rain",
+      "sort_order": 3,
+      "pages": [
+        { "kind": "plain", "url": "https://azbyka.ru/molitvoslov/molitvy-v-unynii.html" },
+        { "kind": "plain", "url": "https://azbyka.ru/molitvoslov/molitvy-v-trevoge-za-budushhee.html" }
+      ]
+    }
+  ]
+}

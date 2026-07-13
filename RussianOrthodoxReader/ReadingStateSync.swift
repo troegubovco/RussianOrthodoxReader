@@ -82,8 +82,11 @@ nonisolated struct ReadingState: Codable, Equatable, Sendable {
         .chapter(bookId: bookID, chapter: chapter)
     }
 
-    func makeRecord() -> CKRecord {
-        let record = CKRecord(recordType: Self.recordType, recordID: Self.recordID)
+    /// Creates or updates a CKRecord. When `basedOn` is provided the existing
+    /// record (and its server change-tag) is reused so CloudKit treats the
+    /// operation as an UPDATE rather than an INSERT.
+    func makeRecord(basedOn existing: CKRecord? = nil) -> CKRecord {
+        let record = existing ?? CKRecord(recordType: Self.recordType, recordID: Self.recordID)
         record["bookID"] = bookID as CKRecordValue
         record["chapter"] = chapter as CKRecordValue
         if let verse {
@@ -322,6 +325,10 @@ private actor ReadingStateSyncStore {
     private var awaitingInitialFetch = true
     private var sawRemoteStateDuringFetch = false
     private var pendingUploadFromFetch = false
+    /// Stores the latest CKRecord received from the server (via fetch, save, or
+    /// conflict error) so that subsequent saves carry the correct change-tag and
+    /// CloudKit treats them as UPDATEs rather than INSERTs.
+    private var lastKnownServerRecord: CKRecord?
 
     init(cachedState: ReadingState?, syncEnabled: Bool, lastSyncDate: Date?) {
         self.cachedState = cachedState
@@ -369,9 +376,13 @@ private actor ReadingStateSyncStore {
         return true
     }
 
+    func storeServerRecord(_ record: CKRecord) {
+        lastKnownServerRecord = record
+    }
+
     func recordForPendingSave(recordID: CKRecord.ID) -> CKRecord? {
         guard recordID == ReadingState.recordID else { return nil }
-        return cachedState?.makeRecord()
+        return cachedState?.makeRecord(basedOn: lastKnownServerRecord)
     }
 
     func beginFetchCycle() {
@@ -434,7 +445,8 @@ private actor ReadingStateSyncStore {
     }
 
     func noteSendSucceeded(savedRecords: [CKRecord]) {
-        guard savedRecords.contains(where: { $0.recordID == ReadingState.recordID }) else { return }
+        guard let saved = savedRecords.first(where: { $0.recordID == ReadingState.recordID }) else { return }
+        lastKnownServerRecord = saved
         lastSyncDate = Date()
         ReadingStateSyncStorage.persistLastSyncDate(lastSyncDate)
         phase = .idle
@@ -448,6 +460,7 @@ private actor ReadingStateSyncStore {
 
     func noteAccountUnavailable() -> ReadingSyncSnapshot {
         cachedState = nil
+        lastKnownServerRecord = nil
         ReadingStateSyncStorage.persistCachedState(nil)
         ReadingStateSyncStorage.persistLastSyncDate(nil)
         ReadingStateSyncStorage.clearStateSerialization()
@@ -536,8 +549,11 @@ final class ReadingStateSyncService: NSObject, CKSyncEngineDelegate, @unchecked 
         syncEngine.state.add(pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneID: ReadingState.zoneID))])
 
         do {
-            try await syncEngine.sendChanges()
+            // Fetch first so we obtain the server record (with its change-tag)
+            // before attempting to send. This prevents the "record to insert
+            // already exists" loop when the engine has a stale pending save.
             try await syncEngine.fetchChanges()
+            try await syncEngine.sendChanges()
         } catch {
             await handleSyncError(error)
         }
@@ -647,6 +663,7 @@ final class ReadingStateSyncService: NSObject, CKSyncEngineDelegate, @unchecked 
             return
         }
 
+        await store.storeServerRecord(serverRecord)
         let shouldUploadResolvedState = await store.reconcile(with: remoteState)
         await publishSnapshot()
 
@@ -686,6 +703,7 @@ final class ReadingStateSyncService: NSObject, CKSyncEngineDelegate, @unchecked 
                 guard modification.record.recordID == ReadingState.recordID,
                       let remoteState = ReadingState(record: modification.record) else { continue }
 
+                await store.storeServerRecord(modification.record)
                 let shouldUploadResolvedState = await store.reconcile(with: remoteState)
                 await publishSnapshot()
 

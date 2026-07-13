@@ -1,6 +1,9 @@
 import SwiftUI
 
 struct CalendarView: View {
+    /// When provided, readings in the day detail card open in the reader.
+    var onOpenReading: ((ReaderRoute) -> Void)? = nil
+
     @EnvironmentObject var appState: AppState
     @State private var viewYear: Int
     @State private var viewMonth: Int
@@ -13,7 +16,8 @@ struct CalendarView: View {
 
     private var typ: AppTypography { AppTypography(base: userFontSize) }
 
-    init() {
+    init(onOpenReading: ((ReaderRoute) -> Void)? = nil) {
+        self.onOpenReading = onOpenReading
         let cal = Calendar.current
         let now = Date()
         _viewYear = State(initialValue: cal.component(.year, from: now))
@@ -121,7 +125,7 @@ struct CalendarView: View {
                     }
 
                     if let day = selectedDay, let info = readings[day] {
-                        DayDetailCard(day: day, month: viewMonth, info: info)
+                        DayDetailCard(day: day, month: viewMonth, info: info, onOpenReading: onOpenReading)
                             .transition(.opacity.combined(with: .move(edge: .top)))
                     }
 
@@ -233,6 +237,8 @@ struct DayDetailCard: View {
     let day: Int
     let month: Int
     let info: LiturgicalDay
+    /// When provided, readings with resolved references become tappable.
+    var onOpenReading: ((ReaderRoute) -> Void)? = nil
 
     @Environment(\.userFontSize) private var userFontSize
     private let theme = OrthodoxColors.fallback
@@ -275,15 +281,16 @@ struct DayDetailCard: View {
                         .foregroundColor(theme.muted)
                 } else {
                     if hasApostol {
-                        readingRow(label: "Апостол", value: info.apostolReading)
+                        readingRow(label: "Апостол", value: info.apostolReading, references: info.apostolReferences)
                     }
                     if hasGospel {
-                        readingRow(label: "Евангелие", value: info.gospelReading)
+                        readingRow(label: "Евангелие", value: info.gospelReading, references: info.gospelReferences)
                     }
                     ForEach(extraGroups) { group in
                         readingRow(
                             label: ExtraReadingGroup.russianSourceLabel(group.sourceLabel),
-                            value: group.displayRef
+                            value: group.displayRef,
+                            references: group.references
                         )
                     }
                 }
@@ -311,7 +318,31 @@ struct DayDetailCard: View {
     }
 
     @ViewBuilder
-    private func readingRow(label: String, value: String) -> some View {
+    private func readingRow(label: String, value: String, references: [ReadingReference] = []) -> some View {
+        if let onOpenReading, !references.isEmpty {
+            Button {
+                onOpenReading(.references(title: label, references: references))
+            } label: {
+                HStack(spacing: 8) {
+                    readingRowContent(label: label, value: value)
+
+                    Spacer(minLength: 8)
+
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(theme.accent)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(label): \(value)")
+            .accessibilityHint("Нажмите, чтобы прочитать")
+        } else {
+            readingRowContent(label: label, value: value)
+        }
+    }
+
+    private func readingRowContent(label: String, value: String) -> some View {
         HStack(spacing: 8) {
             Text("\(label):")
                 .font(AppFont.regular(typ.caption))
@@ -319,6 +350,7 @@ struct DayDetailCard: View {
             Text(value)
                 .font(AppFont.medium(typ.subheadline))
                 .foregroundColor(theme.text)
+                .multilineTextAlignment(.leading)
         }
     }
 

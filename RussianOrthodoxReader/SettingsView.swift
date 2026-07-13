@@ -3,11 +3,32 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.userFontSize) private var userFontSize
-    @State private var showAPIKeySheet = false
-    @State private var apiKeyDraft = ""
     private let theme = OrthodoxColors.fallback
 
     private var typ: AppTypography { AppTypography(base: userFontSize) }
+
+    /// Converts the stored "HH:mm" string to a Date for the DatePicker and back.
+    private var notificationTimeBinding: Binding<Date> {
+        Binding(
+            get: {
+                Self.notificationTimeFormatter.date(from: appState.notificationTime)
+                    ?? Calendar.current.date(
+                        bySettingHour: ReadingReminderScheduler.defaultTime.hour,
+                        minute: ReadingReminderScheduler.defaultTime.minute,
+                        second: 0,
+                        of: Date()
+                    ) ?? Date()
+            },
+            set: { appState.notificationTime = Self.notificationTimeFormatter.string(from: $0) }
+        )
+    }
+
+    private static let notificationTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
 
     var body: some View {
         GeometryReader { proxy in
@@ -27,8 +48,51 @@ struct SettingsView: View {
                             subtitle: "Напоминание накануне",
                             isOn: $appState.notificationsEnabled
                         )
+
+                        if appState.notificationsEnabled {
+                            Divider()
+                                .padding(.horizontal, 20)
+
+                            HStack {
+                                Text("Время напоминания")
+                                    .font(AppFont.regular(typ.subheadline))
+                                    .foregroundColor(theme.text)
+
+                                Spacer()
+
+                                DatePicker(
+                                    "Время напоминания",
+                                    selection: notificationTimeBinding,
+                                    displayedComponents: .hourAndMinute
+                                )
+                                .labelsHidden()
+                                .tint(theme.accent)
+                            }
+                            .padding(20)
+
+                            if appState.readingReminderAuthState == .denied {
+                                Text("Уведомления запрещены для приложения. Разрешите их в настройках системы, чтобы получать напоминания.")
+                                    .font(AppFont.regular(typ.caption))
+                                    .foregroundColor(theme.muted)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.horizontal, 20)
+                                    .padding(.bottom, 16)
+                            } else if appState.readingReminderAuthState == .notDetermined {
+                                Button {
+                                    appState.refreshReadingReminders(allowPermissionPrompt: true)
+                                } label: {
+                                    Text("Разрешить уведомления")
+                                        .font(AppFont.regular(typ.footnote))
+                                        .foregroundColor(theme.accent)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding(.horizontal, 20)
+                                        .padding(.bottom, 16)
+                                }
+                            }
+                        }
                     }
                     .cardStyle()
+                    .animation(.easeInOut(duration: 0.2), value: appState.notificationsEnabled)
 
                     VStack(alignment: .leading, spacing: 12) {
                         Toggle(isOn: $appState.iCloudSyncEnabled) {
@@ -139,42 +203,6 @@ struct SettingsView: View {
                     }
                     .cardStyle()
 
-                    // Calendar source (Azbyka API)
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Источник календаря")
-                            .font(AppFont.regular(typ.subheadline))
-                            .foregroundColor(theme.text)
-
-                        let hasKey = !(UserDefaults.standard.string(forKey: "azbyka_api_key") ?? "").isEmpty
-                        HStack(spacing: 8) {
-                            Circle()
-                                .fill(hasKey ? Color.green : theme.muted)
-                                .frame(width: 8, height: 8)
-                            Text(hasKey ? "Полный API (чтения, пост, глас)" : "Публичная страница Azbyka (чтения и память)")
-                                .font(AppFont.regular(typ.caption))
-                                .foregroundColor(theme.text)
-                        }
-
-                        Button {
-                            apiKeyDraft = UserDefaults.standard.string(forKey: "azbyka_api_key") ?? ""
-                            showAPIKeySheet = true
-                        } label: {
-                            Text(hasKey ? "Изменить ключ API" : "Добавить ключ API")
-                                .font(AppFont.regular(typ.footnote))
-                                .foregroundColor(theme.accent)
-                        }
-
-                        Text("Без ключа приложение читает публичную страницу Azbyka. Ключ нужен только для полного API, если он у вас есть.")
-                            .font(AppFont.regular(typ.caption))
-                            .foregroundColor(theme.muted)
-                    }
-                    .padding(20)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .cardStyle()
-                    .sheet(isPresented: $showAPIKeySheet) {
-                        apiKeySheet
-                    }
-
                     // About
                     VStack(alignment: .leading, spacing: 8) {
                         Text("О приложении")
@@ -182,7 +210,7 @@ struct SettingsView: View {
                             .foregroundColor(theme.text)
 
                         Group {
-                            Text("Православное Чтение v1.0")
+                            Text("Православное Чтение v1.1")
                             Text("Открытый исходный код — лицензия MIT")
                             Text("Синодальный перевод — общественное достояние")
                             Text("Словарь — Библейский словарь Нюстрема (1874)")
@@ -196,17 +224,6 @@ struct SettingsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .cardStyle()
 
-                    // Reset prayer
-                    Button {
-                        UserDefaults.standard.removeObject(forKey: "lastPrayerDate")
-                        appState.checkPrayerStatus()
-                    } label: {
-                        Text("Сбросить молитву дня (для тестирования)")
-                            .font(AppFont.regular(typ.footnote))
-                            .foregroundColor(theme.muted)
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 16)
-                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .readableContentWidth()
@@ -218,43 +235,6 @@ struct SettingsView: View {
         .background(theme.background.ignoresSafeArea())
     }
 
-    @ViewBuilder
-    private var apiKeySheet: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    TextField("Ключ API", text: $apiKeyDraft)
-                        .autocorrectionDisabled()
-                        #if os(iOS)
-                        .textInputAutocapitalization(.never)
-                        #endif
-                } header: {
-                    Text("Ключ API Азбука.ру")
-                } footer: {
-                    Text("Зарегистрируйтесь на azbyka.ru/days/register/userapi и дождитесь одобрения. Затем введите полученный ключ.")
-                }
-            }
-            .navigationTitle("Ключ API")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Отмена") {
-                        showAPIKeySheet = false
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Сохранить") {
-                        let trimmed = apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-                        UserDefaults.standard.set(trimmed.isEmpty ? nil : trimmed, forKey: "azbyka_api_key")
-                        showAPIKeySheet = false
-                    }
-                }
-            }
-        }
-        .presentationDetents([.medium])
-    }
 }
 
 // MARK: - Settings Toggle Row

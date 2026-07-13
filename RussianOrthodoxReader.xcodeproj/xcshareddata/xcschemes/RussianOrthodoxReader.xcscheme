@@ -50,6 +50,13 @@
             ReferencedContainer = "container:RussianOrthodoxReader.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <EnvironmentVariables>
+         <EnvironmentVariable
+            key = "CG_NUMERICS_SHOW_BACKTRACE ="
+            value = "1"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+      </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -73,6 +80,7 @@
    </AnalyzeAction>
    <ArchiveAction
       buildConfiguration = "Release"
+      customArchiveName = "&#x421;&#x438;&#x43d;&#x43e;&#x434;&#x430;&#x43b;"
       revealArchiveInOrganizer = "YES">
    </ArchiveAction>
 </Scheme>

@@ -32,12 +32,18 @@ class AppState: ObservableObject {
     @Published var selectedTab: Tab = .today
     @Published var calendarResetTrigger: Int = 0
     @Published var bibleResetTrigger: Int = 0
+    @Published var prayersResetTrigger: Int = 0
     @Published var hasPrayedToday: Bool = false
     @Published var showPrayerOverlay: Bool = false
+    /// Increments when the calendar day changes while the app is alive —
+    /// views showing "today" observe this to reload.
+    @Published private(set) var dayChangeTrigger: Int = 0
 
     /// Prevents duplicate refreshFromCloud calls (e.g. .task + .onChange both fire at launch).
     private var hasRefreshedFromCloud = false
     private var hasConfiguredReadingSync = false
+    /// The day (yyyy-MM-dd) state was last computed for — used to detect midnight rollover.
+    private var lastSeenDayKey: String = ""
 
     @Published var fontSize: Double {
         didSet {
@@ -55,18 +61,26 @@ class AppState: ObservableObject {
     @Published var notificationsEnabled: Bool {
         didSet {
             UserDefaults.standard.set(notificationsEnabled, forKey: Keys.notificationsEnabled)
+            // User action in Settings — the system permission prompt is allowed here.
+            refreshReadingReminders(allowPermissionPrompt: true)
         }
     }
     @Published var notificationTime: String {
         didSet {
             UserDefaults.standard.set(notificationTime, forKey: Keys.notificationTime)
+            refreshReadingReminders(allowPermissionPrompt: true)
         }
     }
+    /// System notification permission as last observed — drives hints in Settings.
+    @Published private(set) var readingReminderAuthState: ReadingReminderScheduler.AuthState = .authorized
     @Published var iCloudSyncEnabled: Bool {
         didSet {
             UserDefaults.standard.set(iCloudSyncEnabled, forKey: Keys.iCloudSyncEnabled)
             Task {
                 await ReadingStateSyncService.shared.setSyncEnabled(iCloudSyncEnabled)
+            }
+            Task {
+                await PrayersSyncService.shared.setSyncEnabled(iCloudSyncEnabled)
             }
         }
     }
@@ -101,6 +115,7 @@ class AppState: ObservableObject {
     enum Tab: String, CaseIterable {
         case today    = "Сегодня"
         case bible    = "Библия"
+        case prayers  = "Молитвы"
         case calendar = "Календарь"
         case settings = "Настройки"
 
@@ -108,6 +123,7 @@ class AppState: ObservableObject {
             switch self {
             case .today:    return "sun.max"
             case .bible:    return "book"
+            case .prayers:  return "hands.sparkles"
             case .calendar: return "calendar"
             case .settings: return "gearshape"
             }
@@ -172,7 +188,60 @@ class AppState: ObservableObject {
 
         checkPrayerStatus()
         AppFont.setFamily(self.fontFamily)
+        lastSeenDayKey = Self.prayerDateFormatter.string(from: Date())
+
+        // Fires at midnight while the app is alive; foreground transitions are
+        // covered by handlePotentialDayChange() inside refreshFromCloud().
+        NotificationCenter.default.addObserver(
+            forName: .NSCalendarDayChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in
+                self.handlePotentialDayChange()
+            }
+        }
         // Cloud refresh is triggered from the App entry point via refreshFromCloud()
+    }
+
+    // MARK: - Day change
+
+    /// Re-evaluates day-dependent state (prayer gate, Today tab, reminder window)
+    /// when the calendar day has rolled over since the last check.
+    func handlePotentialDayChange() {
+        let todayKey = Self.prayerDateFormatter.string(from: Date())
+        guard todayKey != lastSeenDayKey else { return }
+        lastSeenDayKey = todayKey
+
+        checkPrayerStatus()
+        dayChangeTrigger += 1
+        refreshReadingReminders(allowPermissionPrompt: false)
+    }
+
+    // MARK: - Reading reminders
+
+    private var reminderRefreshTask: Task<Void, Never>?
+
+    /// Re-applies notification settings. `allowPermissionPrompt` must be true only
+    /// for explicit user actions in Settings — passive refreshes never prompt.
+    /// Debounced: the time DatePicker fires continuously while scrolling.
+    func refreshReadingReminders(allowPermissionPrompt: Bool = false) {
+        reminderRefreshTask?.cancel()
+        let enabled = notificationsEnabled
+        let time = notificationTime
+        reminderRefreshTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
+            let state = await ReadingReminderScheduler.shared.applySettings(
+                enabled: enabled,
+                time: time,
+                allowPermissionPrompt: allowPermissionPrompt
+            )
+            await MainActor.run {
+                self?.readingReminderAuthState = state
+            }
+        }
     }
 
     // MARK: - Helpers
@@ -207,10 +276,7 @@ class AppState: ObservableObject {
     #if canImport(UIKit) && !os(macOS)
     @MainActor
     private func beginCloudSaveBackgroundTask() -> UIBackgroundTaskIdentifier {
-        var identifier: UIBackgroundTaskIdentifier = .invalid
-        identifier = UIApplication.shared.beginBackgroundTask(withName: "CloudSyncSave") {
-            UIApplication.shared.endBackgroundTask(identifier)
-        }
+        let identifier = UIApplication.shared.beginBackgroundTask(withName: "CloudSyncSave")
         return identifier
     }
 
@@ -228,6 +294,12 @@ class AppState: ObservableObject {
         } else {
             hasPrayedToday = false
         }
+    }
+
+    /// Clears today's prayer mark (used by the testing button in Settings).
+    func resetDailyPrayer() {
+        UserDefaults.standard.removeObject(forKey: prayerDateKey)
+        checkPrayerStatus()
     }
 
     func markPrayerRead() {
@@ -297,6 +369,7 @@ class AppState: ObservableObject {
     // MARK: - CloudKit Sync
 
     func refreshFromCloud(force: Bool = false) async {
+        handlePotentialDayChange()
         await configureReadingSyncIfNeeded()
         if force {
             await ReadingStateSyncService.shared.refreshNow()
@@ -309,6 +382,8 @@ class AppState: ObservableObject {
             return
         }
         hasRefreshedFromCloud = true
+        // Keep the rolling 7-day reminder window fresh; never prompts for permission.
+        refreshReadingReminders(allowPermissionPrompt: false)
 
         logger.info("refreshFromCloud: starting…")
         do {
@@ -343,6 +418,7 @@ class AppState: ObservableObject {
             }
         }
         await ReadingStateSyncService.shared.start()
+        await PrayersSyncService.shared.activate(enabled: iCloudSyncEnabled)
     }
 
     @MainActor

@@ -197,7 +197,7 @@ final class LiturgicalRepository: LiturgicalRepositoryProtocol {
             backgroundContext.insert(dayEntity)
         }
         
-        let saintOfDayRaw = dto.saints.first ?? dto.summaryTitle ?? "Память не указана"
+        let saintOfDayRaw = dto.summaryTitle ?? dto.saints.first ?? "Память не указана"
         let saintOfDay = localizeSaintName(saintOfDayRaw)
         
         var ordinal = 0
@@ -276,7 +276,7 @@ final class LiturgicalRepository: LiturgicalRepositoryProtocol {
             context.insert(dayEntity)
         }
 
-        let saintOfDayRaw = dto.saints.first ?? dto.summaryTitle ?? "Память не указана"
+        let saintOfDayRaw = dto.summaryTitle ?? dto.saints.first ?? "Память не указана"
         let saintOfDay = localizeSaintName(saintOfDayRaw)
 
         var ordinal = 0
