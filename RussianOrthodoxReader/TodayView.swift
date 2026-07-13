@@ -69,6 +69,7 @@ struct ExtraReadingGroup: Identifiable {
 struct TodayView: View {
     let onOpenReading: (ReaderRoute) -> Void
 
+    @EnvironmentObject var appState: AppState
     @Environment(\.userFontSize) private var userFontSize
     @StateObject private var viewModel = TodayViewModel()
     private let theme = OrthodoxColors.fallback
@@ -172,6 +173,14 @@ struct TodayView: View {
             await viewModel.loadToday()
             Task { @MainActor in
                 try? await Task.sleep(nanoseconds: 350_000_000)
+                await viewModel.prefetch()
+            }
+        }
+        // The view never leaves the hierarchy (tabs are opacity-based), so the
+        // one-shot .task above won't rerun — reload when the calendar day changes.
+        .onChange(of: appState.dayChangeTrigger) { _, _ in
+            Task {
+                await viewModel.loadToday()
                 await viewModel.prefetch()
             }
         }

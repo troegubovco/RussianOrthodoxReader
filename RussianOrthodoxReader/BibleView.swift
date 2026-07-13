@@ -120,7 +120,7 @@ private struct BibleBookRow: View {
             .accessibilityLabel("\(book.name), открыть первую главу")
 
             Button(action: onOpenPicker) {
-                Image(systemName: "arrow.right")
+                Image(systemName: "ellipsis")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(theme.muted)
                     .frame(width: 34, height: 34)

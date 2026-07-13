@@ -328,11 +328,18 @@ struct AdaptiveTopPadding: ViewModifier {
     }
 }
 
+/// Caps content at a readable column width and centers it — matters on iPad
+/// and macOS where full-width text lines become uncomfortably long.
 struct ReadableContentWidth: ViewModifier {
     let maxWidth: CGFloat
 
     func body(content: Content) -> some View {
+        // Колонка всегда по центру: симметричные поля — это типографика
+        // читалки (как в Apple Books), а прижатая влево колонка выглядит
+        // как сломанная вёрстка с пустотой справа.
         content
+            .frame(maxWidth: maxWidth, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .center)
     }
 }
 
@@ -352,5 +359,61 @@ extension View {
 
     func readableContentWidth(_ maxWidth: CGFloat = AppLayout.readableDetailWidth) -> some View {
         modifier(ReadableContentWidth(maxWidth: maxWidth))
+    }
+}
+
+// MARK: - Sliding Segmented Control
+
+/// Двух-/трёхсегментный переключатель с плавно скользящим индикатором.
+/// Вся площадь сегмента — область нажатия (не только текст).
+struct SlidingSegmentedControl<Value: Hashable>: View {
+    struct Segment: Identifiable {
+        let value: Value
+        let title: String
+        var id: Value { value }
+    }
+
+    let segments: [Segment]
+    @Binding var selection: Value
+    var font: Font = AppFont.regular(15)
+
+    @Namespace private var namespace
+    private let theme = OrthodoxColors.fallback
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(segments) { segment in
+                let isSelected = segment.value == selection
+                Text(segment.title)
+                    .font(font)
+                    .fontWeight(isSelected ? .semibold : .regular)
+                    .foregroundColor(isSelected ? .white : theme.muted)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background {
+                        if isSelected {
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(theme.accent)
+                                .matchedGeometryEffect(id: "selectionPill", in: namespace)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        guard !isSelected else { return }
+                        withAnimation(.easeInOut(duration: 0.22)) {
+                            selection = segment.value
+                        }
+                    }
+                    .accessibilityLabel(segment.title)
+                    .accessibilityAddTraits(isSelected ? .isSelected : [])
+            }
+        }
+        .padding(3)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(theme.card)
+        )
     }
 }

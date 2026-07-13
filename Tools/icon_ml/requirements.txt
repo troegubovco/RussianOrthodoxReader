@@ -1,0 +1,11 @@
+# Tested on macOS 26 / Apple Silicon with Python 3.12 (see README.md).
+# torch 2.5.x + coremltools 8.1 is a known-good conversion pairing; if you
+# upgrade one, re-run 07_export_coreml.py's parity check before trusting it.
+torch==2.5.1
+torchvision==0.20.1
+timm==1.0.15
+coremltools==8.1
+pillow>=10.0
+imagehash==4.3.1
+beautifulsoup4==4.12.3
+tqdm

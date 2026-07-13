@@ -1,0 +1,22 @@
+{
+  "categoryCounts" : {
+    "angels" : 358,
+    "christ" : 2126,
+    "saints" : 18521,
+    "theotokos" : 11032
+  },
+  "classifierPriorsEnabled" : true,
+  "databaseFile" : "icons.sqlite",
+  "dimension" : 768,
+  "featureFile" : "icon_feature_vectors.f32",
+  "featurePrintRevision" : 2,
+  "generatedAt" : "2026-04-01T03:59:13Z",
+  "metric" : "l2",
+  "normsFile" : "icon_feature_norms.f32",
+  "rowCount" : 32037,
+  "sourceCounts" : {
+    "full" : 32037
+  },
+  "thumbnailsSubdirectory" : "Thumbs",
+  "version" : "1"
+}

@@ -174,8 +174,14 @@ struct ContentView: View {
                 .zIndex(appState.selectedTab == .bible ? 1 : 0)
             }
 
+            if loadedTabs.contains(.prayers) {
+                PrayersView()
+                    .opacity(appState.selectedTab == .prayers ? 1 : 0)
+                    .zIndex(appState.selectedTab == .prayers ? 1 : 0)
+            }
+
             if loadedTabs.contains(.calendar) {
-                CalendarView()
+                CalendarView(onOpenReading: openReading)
                     .opacity(appState.selectedTab == .calendar ? 1 : 0)
                     .zIndex(appState.selectedTab == .calendar ? 1 : 0)
             }
@@ -208,8 +214,10 @@ struct ContentView: View {
             TodayView(onOpenReading: openReading)
         case .bible:
             BibleView(onSelectChapter: openReading, onResume: resumeAction)
+        case .prayers:
+            PrayersView()
         case .calendar:
-            CalendarView()
+            CalendarView(onOpenReading: openReading)
         case .settings:
             SettingsView()
         }
@@ -278,15 +286,15 @@ struct TabBarView: View {
                     .foregroundColor(appState.selectedTab == tab ? theme.accent : theme.muted)
                     .animation(.easeInOut(duration: 0.2), value: appState.selectedTab)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 2)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(tab.rawValue)
                 .accessibilityHint(appState.selectedTab == tab ? "Нажмите дважды для возврата" : "")
             }
         }
-        .padding(.top, 10)
-        .padding(.bottom, 10)
+        .padding(.top, 6)
+        .padding(.bottom, 4)
         .background(
             theme.background.opacity(0.95)
                 .background(.ultraThinMaterial)
@@ -322,6 +330,8 @@ struct TabBarView: View {
             appState.calendarResetTrigger += 1
         case .bible:
             appState.bibleResetTrigger += 1
+        case .prayers:
+            appState.prayersResetTrigger += 1
         case .today, .settings:
             break
         }

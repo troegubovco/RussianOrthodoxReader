@@ -10,7 +10,10 @@ final class PersistenceController {
     private init(inMemory: Bool = false) {
         let schema = Schema([
             LiturgicalDayEntity.self,
-            ReadingReferenceEntity.self
+            ReadingReferenceEntity.self,
+            PrayerBookmarkEntity.self,
+            PomyannikEntryEntity.self,
+            MyRuleItemEntity.self
         ])
 
         // cloudKitDatabase: .none — this store is a local API cache and must not

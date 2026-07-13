@@ -11,3 +11,18 @@ Tools/build_bible_db/rus_modern.sqlite
 # HTML probe output
 Tools/build_bible_db/probe_gen1.html
 annot.opcorpora.xml
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Icon ML pipeline — generated artifacts (rebuild via Tools/icon_ml/README.md)
+Tools/icon_ml/.venv/
+Tools/icon_ml/work/
+
+# Scraped icon images / ML datasets (15 GB; rebuild with download_pravicon_images.py)
+Tools/data/pravicon_images/
+Tools/data/ml_dataset/
+
+# Create ML scratch project (large binary checkpoints)
+IconClassifier.mlproj/
