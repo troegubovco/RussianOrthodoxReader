@@ -203,6 +203,16 @@ struct SettingsView: View {
                     }
                     .cardStyle()
 
+                    // Icon recognition
+                    VStack(spacing: 0) {
+                        SettingsToggle(
+                            title: "Сохранять фото икон в Фото",
+                            subtitle: "Снимки, сделанные при распознавании икон, будут сохраняться в медиатеку Фото.",
+                            isOn: $appState.saveIconPhotosToLibrary
+                        )
+                    }
+                    .cardStyle()
+
                     // About
                     VStack(alignment: .leading, spacing: 8) {
                         Text("О приложении")

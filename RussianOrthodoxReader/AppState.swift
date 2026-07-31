@@ -84,6 +84,14 @@ class AppState: ObservableObject {
             }
         }
     }
+    /// When enabled, photos captured with the in-app camera during icon
+    /// recognition are also saved to the user's photo library. Gallery
+    /// picks are never re-saved. Default off.
+    @Published var saveIconPhotosToLibrary: Bool {
+        didSet {
+            UserDefaults.standard.set(saveIconPhotosToLibrary, forKey: Keys.saveIconPhotosToLibrary)
+        }
+    }
 
     /// Last chapter the user was reading — persisted locally and synced via CloudKit.
     /// Only `.chapter` routes are saved; `.references` are date-specific and ephemeral.
@@ -150,6 +158,7 @@ class AppState: ObservableObject {
         static let notificationTime     = "notificationTime"
         static let lastReadingRoute     = "lastReadingRoute"
         static let iCloudSyncEnabled    = "iCloudSyncEnabled"
+        static let saveIconPhotosToLibrary = "saveIconPhotosToLibrary"
     }
 
     // MARK: - Init
@@ -177,6 +186,7 @@ class AppState: ObservableObject {
             syncEnabled = true
         }
         self.iCloudSyncEnabled = syncEnabled
+        self.saveIconPhotosToLibrary = defaults.bool(forKey: Keys.saveIconPhotosToLibrary)
 
         if let data = defaults.data(forKey: Keys.lastReadingRoute),
            let route = try? JSONDecoder().decode(ReaderRoute.self, from: data) {
@@ -411,6 +421,10 @@ class AppState: ObservableObject {
     private func configureReadingSyncIfNeeded() async {
         guard !hasConfiguredReadingSync else { return }
         hasConfiguredReadingSync = true
+
+        // В режиме скриншотов не поднимаем CloudKit — иначе личные записи
+        // помянника и позиция чтения подтянутся из iCloud.
+        if ScreenshotMode.isActive { return }
 
         ReadingStateSyncService.shared.setSnapshotHandler { [weak self] snapshot in
             Task { @MainActor in

@@ -50,6 +50,12 @@
             ReferencedContainer = "container:RussianOrthodoxReader.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <CommandLineArguments>
+         <CommandLineArgument
+            argument = "-screenshotMode"
+            isEnabled = "YES">
+         </CommandLineArgument>
+      </CommandLineArguments>
       <EnvironmentVariables>
          <EnvironmentVariable
             key = "CG_NUMERICS_SHOW_BACKTRACE ="

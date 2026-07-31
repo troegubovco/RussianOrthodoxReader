@@ -46,6 +46,30 @@ def lr_at(step: int, total: int, base: float, warmup: int) -> float:
     return base * (0.01 + 0.99 * 0.5 * (1 + math.cos(math.pi * p)))
 
 
+def apply_mix(x, y, mixup_alpha, cutmix_alpha, prob):
+    """Returns (x, y_a, y_b, lam); lam == 1.0 means no mixing."""
+    if prob <= 0 or torch.rand(1).item() > prob:
+        return x, y, y, 1.0
+    use_cutmix = cutmix_alpha > 0 and (mixup_alpha <= 0 or torch.rand(1).item() < 0.5)
+    alpha = cutmix_alpha if use_cutmix else mixup_alpha
+    if alpha <= 0:
+        return x, y, y, 1.0
+    lam = float(torch.distributions.Beta(alpha, alpha).sample())
+    idx = torch.randperm(x.size(0), device=x.device)
+    if use_cutmix:
+        _, _, h, w = x.shape
+        r = math.sqrt(1.0 - lam)
+        ch, cw = int(h * r), int(w * r)
+        cy, cx = int(torch.randint(h, (1,))), int(torch.randint(w, (1,)))
+        y1, y2 = max(cy - ch // 2, 0), min(cy + ch // 2, h)
+        x1, x2 = max(cx - cw // 2, 0), min(cx + cw // 2, w)
+        x[:, :, y1:y2, x1:x2] = x[idx, :, y1:y2, x1:x2]
+        lam = 1.0 - ((y2 - y1) * (x2 - x1) / (h * w))
+    else:
+        x = lam * x + (1.0 - lam) * x[idx]
+    return x, y, y[idx], lam
+
+
 @torch.no_grad()
 def evaluate(model, loader, device, num_classes) -> dict:
     model.eval()
@@ -85,6 +109,9 @@ def main():
     parser.add_argument("--label-smoothing", type=float, default=0.1)
     parser.add_argument("--embed-dim", type=int, default=512)
     parser.add_argument("--scale", type=float, default=30.0)
+    parser.add_argument("--mixup", type=float, default=0.0, help="mixup alpha (0=off)")
+    parser.add_argument("--cutmix", type=float, default=0.0, help="cutmix alpha (0=off)")
+    parser.add_argument("--mix-prob", type=float, default=0.0, help="per-batch probability of mixing")
     parser.add_argument("--workers", type=int, default=6)
     parser.add_argument("--device", default="auto", choices=["auto", "mps", "cuda", "cpu"])
     parser.add_argument("--seed", type=int, default=42)
@@ -123,13 +150,23 @@ def main():
     train_ds = IconDataset(train_rows, args.img_size, train=True)
     val_ds = IconDataset(val_rows, args.img_size, train=False)
     train_loader = DataLoader(train_ds, batch_size=args.batch_size, sampler=sampler,
-                              num_workers=args.workers, persistent_workers=args.workers > 0,
+                              num_workers=args.workers, persistent_workers=False,
                               drop_last=len(train_rows) > args.batch_size)
     val_loader = DataLoader(val_ds, batch_size=max(32, args.batch_size),
                             num_workers=max(2, args.workers // 2))
 
     model = IconNet(args.model, num_classes, args.embed_dim, args.scale, pretrained=True)
     model.to(device)
+    if device == "mps":
+        # MPS (torch 2.5.1): convolution_backward падает с "view size is not
+        # compatible" когда grad_output неконтигуален (permute после conv_dw
+        # в блоках ConvNeXt). Хук делает градиент контигуальным до conv-backward.
+        def _contig_grad_hook(mod, inp, out):
+            if isinstance(out, torch.Tensor) and out.requires_grad:
+                out.register_hook(lambda g: g.contiguous())
+        for m in model.modules():
+            if isinstance(m, nn.Conv2d):
+                m.register_forward_hook(_contig_grad_hook)
     n_params = sum(p.numel() for p in model.parameters()) / 1e6
     print(f"Model {args.model}: {n_params:.1f}M params, embed_dim={args.embed_dim}")
 
@@ -202,14 +239,20 @@ def main():
                     g["lr"] = lr
 
                 x, y = x.to(device), y.to(device)
+                if phase == "finetune":
+                    x, y_a, y_b, lam = apply_mix(x, y, args.mixup, args.cutmix, args.mix_prob)
+                else:
+                    y_a, y_b, lam = y, y, 1.0
                 optimizer.zero_grad(set_to_none=True)
                 if args.amp and device != "cpu":
                     with torch.autocast(device_type=device, dtype=torch.float16):
                         logits, _ = model(x)
-                        loss = criterion(logits, y)
+                        loss = (criterion(logits, y_a) if lam == 1.0
+                                else lam * criterion(logits, y_a) + (1.0 - lam) * criterion(logits, y_b))
                 else:
                     logits, _ = model(x)
-                    loss = criterion(logits, y)
+                    loss = (criterion(logits, y_a) if lam == 1.0
+                            else lam * criterion(logits, y_a) + (1.0 - lam) * criterion(logits, y_b))
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 optimizer.step()

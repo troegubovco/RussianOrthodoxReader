@@ -62,6 +62,7 @@ def build_transforms(img_size: int, train: bool):
             transforms.RandomResizedCrop(
                 img_size, scale=(0.55, 1.0), ratio=(0.75, 1.33),
                 interpolation=transforms.InterpolationMode.BICUBIC),
+            transforms.RandAugment(num_ops=2, magnitude=7),
             transforms.RandomRotation(7, interpolation=transforms.InterpolationMode.BILINEAR),
             transforms.RandomPerspective(distortion_scale=0.12, p=0.3),
             transforms.RandomApply(

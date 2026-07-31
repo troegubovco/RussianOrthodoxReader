@@ -28,6 +28,10 @@
 	<string>public.app-category.reference</string>
 	<key>NSCameraReactionEffectGesturesEnabledDefault</key>
 	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>Камера используется для распознавания икон.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Разрешение нужно, чтобы сохранять сделанные вами снимки икон в медиатеку Фото.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Fonts/CormorantGaramond-VariableFont_wght.ttf</string>

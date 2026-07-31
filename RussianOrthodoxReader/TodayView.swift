@@ -74,6 +74,10 @@ struct TodayView: View {
     @StateObject private var viewModel = TodayViewModel()
     private let theme = OrthodoxColors.fallback
 
+    #if os(iOS)
+    @State private var showIconScan = false
+    #endif
+
     private var typ: AppTypography { AppTypography(base: userFontSize) }
 
     private static let dateFormatter: DateFormatter = {
@@ -118,6 +122,10 @@ struct TodayView: View {
                         }
                     }
                     .padding(.top, isLandscape ? 12 : 8)
+
+                    #if os(iOS)
+                    iconScanCard
+                    #endif
 
                     if let data = viewModel.day {
                         readingsCard(for: data)
@@ -184,7 +192,51 @@ struct TodayView: View {
                 await viewModel.prefetch()
             }
         }
+        #if os(iOS)
+        .fullScreenCover(isPresented: $showIconScan) {
+            IconScanView()
+        }
+        #endif
     }
+
+    // MARK: - Icon recognition entry point
+
+    #if os(iOS)
+    private var iconScanCard: some View {
+        Button {
+            showIconScan = true
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: "camera.viewfinder")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundColor(theme.accent)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Распознать икону")
+                        .font(AppFont.medium(typ.callout))
+                        .foregroundColor(theme.text)
+
+                    Text("Кто изображён, житие, история и молитвы")
+                        .font(AppFont.regular(typ.footnote))
+                        .foregroundColor(theme.muted)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(theme.muted)
+            }
+            .padding(20)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardStyle()
+        .accessibilityLabel("Распознать икону")
+        .accessibilityHint("Открывает камеру или галерею для распознавания иконы")
+    }
+    #endif
 
     // MARK: - Readings card
 
