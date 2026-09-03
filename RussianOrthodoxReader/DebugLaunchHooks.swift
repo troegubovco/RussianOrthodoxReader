@@ -25,6 +25,13 @@ enum DebugLaunchHooks {
         return value
     }()
 
+    /// `SINODAL_SHOW_WHATS_NEW=1` — forces the «Что нового» splash sheet
+    /// (`WhatsNewView`) to show at launch, regardless of the stored
+    /// `whatsNewShownVersion` — see `ContentView.swift`.
+    static let showWhatsNew: Bool = {
+        ProcessInfo.processInfo.environment["SINODAL_SHOW_WHATS_NEW"] == "1"
+    }()
+
     static let openVerse: (bookId: String, chapter: Int, verse: Int)? = {
         guard let raw = ProcessInfo.processInfo.environment["SINODAL_OPEN_VERSE"] else { return nil }
         let parts = raw.split(separator: ":")

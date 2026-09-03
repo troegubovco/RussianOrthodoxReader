@@ -30,6 +30,11 @@ struct ContentView: View {
     @State private var debugSearchQuery: String? = nil
     #endif
 
+    /// Версия, для которой пользователь уже видел лист «Что нового» —
+    /// пустая строка на свежей установке (не показываем, только запоминаем).
+    @AppStorage("whatsNewShownVersion") private var whatsNewShownVersion = ""
+    @State private var showWhatsNew = false
+
     private let theme = OrthodoxColors.fallback
 
     var body: some View {
@@ -136,6 +141,14 @@ struct ContentView: View {
             }
             DebugLaunchHooks.seedBookmarksIfNeeded()
             #endif
+            checkWhatsNew()
+        }
+        .sheet(isPresented: $showWhatsNew) {
+            WhatsNewView()
+                .environment(\.userFontSize, CGFloat(appState.fontSize))
+                .onDisappear {
+                    whatsNewShownVersion = currentAppVersion
+                }
         }
         #if DEBUG
         .sheet(isPresented: Binding(
@@ -160,6 +173,42 @@ struct ContentView: View {
             if newPhase == .inactive || newPhase == .background {
                 persistCurrentReaderRoute()
             }
+        }
+        .onChange(of: appState.showPrayerOverlay) { _, isShowing in
+            // Не спорим с плашкой «Помолитесь перед чтением» за экран —
+            // откладываем показ «Что нового» до её закрытия.
+            if !isShowing {
+                checkWhatsNew()
+            }
+        }
+    }
+
+    /// Текущая версия приложения (`CFBundleShortVersionString`), например «1.5».
+    private var currentAppVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+    }
+
+    /// Показывает лист «Что нового», если версия приложения изменилась с
+    /// прошлого показа. На свежей установке (`whatsNewShownVersion` пуст)
+    /// ничего не показывает — только запоминает текущую версию, чтобы лист
+    /// появился лишь после следующего обновления.
+    private func checkWhatsNew() {
+        #if DEBUG
+        if DebugLaunchHooks.showWhatsNew {
+            showWhatsNew = true
+            return
+        }
+        #endif
+        guard !ScreenshotMode.isActive else { return }
+        guard !appState.showPrayerOverlay else { return }
+        let current = currentAppVersion
+        guard !current.isEmpty else { return }
+        if whatsNewShownVersion.isEmpty {
+            whatsNewShownVersion = current
+            return
+        }
+        if whatsNewShownVersion != current {
+            showWhatsNew = true
         }
     }
 
