@@ -23,11 +23,23 @@ struct PrayerSummary: Identifiable, Hashable {
 }
 
 /// Результат поиска молитвы — с названием раздела для контекста.
+///
+/// `subtitle`/`kind` — добавлены для интент-поиска (search_design.md §3.5).
+/// `kind == .category` — это не молитва, а раздел, отвечающий на запрос
+/// целиком (например, «утром» → раздел «Утренние молитвы»); в этом случае
+/// `id`/`slug`/`title` описывают раздел (slug раздела, а не молитвы).
 struct PrayerSearchResult: Identifiable, Hashable {
+    enum Kind: Hashable {
+        case prayer
+        case category(slug: String)
+    }
+
     let id: Int
     let slug: String
     let title: String
     let categoryTitle: String
+    var subtitle: String? = nil
+    var kind: Kind = .prayer
 }
 
 struct Prayer: Identifiable, Hashable {

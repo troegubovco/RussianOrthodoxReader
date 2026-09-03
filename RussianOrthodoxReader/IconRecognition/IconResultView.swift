@@ -22,9 +22,11 @@ struct IconResultView: View {
                 .navigationDestination(for: IconMatch.self) { match in
                     IconSubjectDetailView(userImage: image, match: match, showsMatchPercent: false)
                         .navigationTitle("Результат")
+                        .toolbarColorScheme(.light, for: .navigationBar)
                 }
                 .navigationTitle("Результат")
                 .navigationBarTitleDisplayMode(.inline)
+                .toolbarColorScheme(.light, for: .navigationBar)
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Готово") { dismiss() }

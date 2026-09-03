@@ -4,6 +4,7 @@ struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.userFontSize) private var userFontSize
     private let theme = OrthodoxColors.fallback
+    @AppStorage(PrayersRepository.feminineFormsKey) private var feminineForms = false
 
     private var typ: AppTypography { AppTypography(base: userFontSize) }
 
@@ -200,6 +201,16 @@ struct SettingsView: View {
                             }
                         }
                         .padding(20)
+                    }
+                    .cardStyle()
+
+                    // Prayers — gendered forms
+                    VStack(spacing: 0) {
+                        SettingsToggle(
+                            title: "Женская форма молитв",
+                            subtitle: "В последовании ко Причащению и благодарственных молитвах",
+                            isOn: $feminineForms
+                        )
                     }
                     .cardStyle()
 

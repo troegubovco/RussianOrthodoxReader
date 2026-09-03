@@ -1,0 +1,270 @@
+{
+  "_comment": "Правки заголовков поверх azbyka (см. WORKLOG 2026-09-02): slug → title (+ subtitle). Конвенция: «Молитва N-я, <сан> <имя в род. п.>» без дат смерти; безымянные — инципит в кавычках; подзаголовок — о чём молитва.",
+  "morning.molitva-svyatomu-duhu": {
+    "title": "Царю Небесный",
+    "subtitle": "Молитва Святому Духу — призывание Утешителя"
+  },
+  "morning.molitva-ko-presvyatoj-troice": {
+    "title": "Пресвятая Троице"
+  },
+  "morning.molitva-gospodnya": {
+    "title": "Отче наш",
+    "subtitle": "Молитва Господня, данная Самим Спасителем"
+  },
+  "morning.molitva-1-ya": {
+    "title": "Молитва 1-я, прп. Макария Великого",
+    "subtitle": "Покаянная — «Боже, очисти мя грешнаго»"
+  },
+  "morning.molitva-2-ya": {
+    "title": "Молитва 2-я, прп. Макария Великого",
+    "subtitle": "Полунощная песнь Спасителю"
+  },
+  "morning.molitva-3-ya": {
+    "title": "Молитва 3-я, прп. Макария Великого",
+    "subtitle": "О помощи в делах наступающего дня"
+  },
+  "morning.molitva-4-ya": {
+    "title": "Молитва 4-я, прп. Макария Великого",
+    "subtitle": "О сохранении от греха в этот день"
+  },
+  "morning.molitva-5-ya-svt-vasiliya-velikogo-379-k-bogu-otcu": {
+    "title": "Молитва 5-я, свт. Василия Великого",
+    "subtitle": "К Богу Отцу — о достойной молитве"
+  },
+  "morning.molitva-6-ya-svt-vasiliya-velikogo-379-ko-presvyatoj-troice": {
+    "title": "Молитва 6-я, свт. Василия Великого",
+    "subtitle": "Ко Пресвятой Троице — благодарение за прошедшую ночь"
+  },
+  "morning.molitva-9-ya-k-angelu-hranitelyu": {
+    "title": "Молитва 9-я, к Ангелу хранителю"
+  },
+  "morning.molitvennoe-prizyvanie-svyatogo-imya-kotorogo-nosish": {
+    "title": "Молитва святому, имя которого носишь"
+  },
+  "morning.o-zhivyh": {
+    "title": "Помянник о живых",
+    "subtitle": "Полное поминовение — вместо краткой молитвы о живых"
+  },
+  "morning.ob-usopshih": {
+    "title": "Помянник об усопших",
+    "subtitle": "Полное поминовение — вместо краткой молитвы об усопших"
+  },
+  "evening.nachalo": {
+    "title": "Начальные молитвы",
+    "subtitle": "«Царю Небесный», Трисвятое и «Отче наш»"
+  },
+  "evening.tropari": {
+    "title": "Тропари покаянные",
+    "subtitle": "«Помилуй нас, Господи, помилуй нас»"
+  },
+  "evening.molitva-1-svyatago-makariya-velikago-k-bogu-otcu": {
+    "title": "Молитва 1-я, прп. Макария Великого",
+    "subtitle": "К Богу Отцу — о безгрешном сне и дне вечном"
+  },
+  "evening.molitva-2-svyatago-antioha-ko-gospodu-iisusu-hristu": {
+    "title": "Молитва 2-я, прп. Антиоха",
+    "subtitle": "Ко Господу Иисусу Христу — о покое души"
+  },
+  "evening.molitva-3-ko-presvyatomu-duhu": {
+    "title": "Молитва 3-я, ко Пресвятому Духу"
+  },
+  "evening.molitva-4-svyatago-makariya-velikago": {
+    "title": "Молитва 4-я, прп. Макария Великого"
+  },
+  "evening.molitva-5": {
+    "title": "Молитва 5-я, «еже согреших во дни сем»"
+  },
+  "evening.molitva-6": {
+    "title": "Молитва 6-я, «ко сну отходящим»"
+  },
+  "evening.molitva-7-svyatago-ioanna-zlatoustago": {
+    "title": "Молитва 7-я, свт. Иоанна Златоуста"
+  },
+  "evening.molitva-8-ko-gospodu-nashemu-iisusu-hristu": {
+    "title": "Молитва 8-я, ко Господу Иисусу Христу"
+  },
+  "evening.molitva-9-ko-presvyatej-bogorodice-petra-inoka-studijskago": {
+    "title": "Молитва 9-я, Петра Студийского",
+    "subtitle": "Ко Пресвятой Богородице — покаянное припадание"
+  },
+  "evening.molitva-10-ko-presvyatej-bogorodice": {
+    "title": "Молитва 10-я, ко Пресвятой Богородице"
+  },
+  "evening.molitva-11-ko-svyatomu-angelu-hranitelyu": {
+    "title": "Молитва 11-я, к Ангелу хранителю"
+  },
+  "evening.kondak-glas-8": {
+    "title": "Кондак «Взбранной Воеводе»",
+    "subtitle": "И краткие молитвы Богородице на сон грядущий"
+  },
+  "evening.tazhe-molitva-svyatago-ioannikiya": {
+    "title": "Молитва прп. Иоанникия Великого"
+  },
+  "evening.tazhe-vmesto-proshheniya": {
+    "title": "Молитвы вместо прощения",
+    "subtitle": "«Ослаби, остави, прости» и молитва о ближних"
+  },
+  "evening.molitva-svyatago-ioanna-damaskina-yuzhe-ukazuya-na-odr-tvoj": {
+    "title": "Молитва прп. Иоанна Дамаскина"
+  },
+  "evening.tropari-glas-2": {
+    "title": "Тропари «Просвети очи мои»",
+    "subtitle": "Тропари, глас 2 — перед самым отходом ко сну"
+  },
+  "communion.molitva-1-ya-svt-vasiliya-velikogo-379": {
+    "title": "Молитва 1-я, свт. Василия Великого"
+  },
+  "communion.molitva-1-ya-svt-vasiliya-velikogo-379-2": {
+    "title": "Молитва 1-я, свт. Василия Великого"
+  },
+  "communion.molitva-2-ya-svt-ioanna-zlatoustogo-407": {
+    "title": "Молитва 2-я, свт. Иоанна Златоуста"
+  },
+  "communion.molitva-2-ya-svt-ioanna-zlatoustogo-407-2": {
+    "title": "Молитва 2-я, свт. Иоанна Златоуста"
+  },
+  "communion.molitva-3-ya-prp-simeona-metafrasta-2ya-pol-x-v": {
+    "title": "Молитва 3-я, прп. Симеона Метафраста"
+  },
+  "communion.molitva-3-ya-prp-simeona-metafrasta-2ya-pol-x-v-2": {
+    "title": "Молитва 3-я, прп. Симеона Метафраста"
+  },
+  "communion.molitva-4-ya-prp-ioanna-damaskina-do-754": {
+    "title": "Молитва 4-я, прп. Иоанна Дамаскина"
+  },
+  "communion.molitva-4-ya-prp-ioanna-damaskina-do-754-2": {
+    "title": "Молитва 4-я, прп. Иоанна Дамаскина"
+  },
+  "communion.molitva-5-ya-svt-vasiliya-velikogo-379": {
+    "title": "Молитва 5-я, свт. Василия Великого"
+  },
+  "communion.molitva-5-ya-svt-vasiliya-velikogo-379-2": {
+    "title": "Молитва 5-я, свт. Василия Великого"
+  },
+  "communion.molitva-6-ya-prp-simeona-novogo-bogoslova-1022": {
+    "title": "Молитва 6-я, прп. Симеона Нового Богослова"
+  },
+  "communion.molitva-6-ya-prp-simeona-novogo-bogoslova-1022-2": {
+    "title": "Молитва 6-я, прп. Симеона Нового Богослова"
+  },
+  "communion.molitva-7-ya-svt-ioanna-zlatoustogo-407": {
+    "title": "Молитва 7-я, свт. Иоанна Златоуста"
+  },
+  "communion.molitva-7-ya-svt-ioanna-zlatoustogo-407-2": {
+    "title": "Молитва 7-я, свт. Иоанна Златоуста"
+  },
+  "communion.ego-zhe-8-ya": {
+    "title": "Молитва 8-я, свт. Иоанна Златоуста",
+    "subtitle": "«Несмь доволен, да внидеши под кров души моея»"
+  },
+  "communion.ego-zhe-8-ya-2": {
+    "title": "Молитва 8-я, свт. Иоанна Златоуста",
+    "subtitle": "«Несмь доволен, да внидеши под кров души моея» · женская форма"
+  },
+  "communion.ego-zhe-9-ya": {
+    "title": "Молитва 9-я, свт. Иоанна Златоуста",
+    "subtitle": "О неосуждённом причащении Святых Таин"
+  },
+  "communion.ego-zhe-9-ya-2": {
+    "title": "Молитва 9-я, свт. Иоанна Златоуста",
+    "subtitle": "О неосуждённом причащении Святых Таин · женская форма"
+  },
+  "communion.molitva-10-ya-prp-ioanna-damaskina-do-754": {
+    "title": "Молитва 10-я, прп. Иоанна Дамаскина"
+  },
+  "communion.molitva-10-ya-prp-ioanna-damaskina-do-754-2": {
+    "title": "Молитва 10-я, прп. Иоанна Дамаскина"
+  },
+  "communion.molitva-svt-ioanna-zlatoustogo-407": {
+    "title": "Верую, Господи, и исповедую",
+    "subtitle": "Молитва свт. Иоанна Златоуста — читается у Чаши"
+  },
+  "communion.molitva-svt-ioanna-zlatoustogo-407-2": {
+    "title": "Верую, Господи, и исповедую",
+    "subtitle": "Молитва свт. Иоанна Златоуста — читается у Чаши · женская форма"
+  },
+  "communion.prihodya-zhe-prichastitsya-proiznosi-myslenno-eti-stihi-prp": {
+    "title": "Приступая ко Причащению",
+    "subtitle": "«Се приступаю…» и «Вечери Твоея тайныя» — у самой Чаши"
+  },
+  "communion.prihodya-zhe-prichastitsya-proiznosi-myslenno-eti-stihi-prp-2": {
+    "title": "Приступая ко Причащению",
+    "subtitle": "«Се приступаю…» и «Вечери Твоея тайныя» — у самой Чаши · женская форма"
+  },
+  "thanksgiving.molitva-2-ya-svyatogo-vasiliya-velikogo": {
+    "title": "Молитва 2-я, свт. Василия Великого"
+  },
+  "thanksgiving.molitva-2-ya-svyatogo-vasiliya-velikogo-2": {
+    "title": "Молитва 2-я, свт. Василия Великого"
+  },
+  "thanksgiving.molitva-4-ya": {
+    "title": "Молитва 4-я, «Тело Твое Святое»",
+    "subtitle": "О причащении в жизнь вечную и оставление грехов"
+  },
+  "thanksgiving.molitva-4-ya-2": {
+    "title": "Молитва 4-я, «Тело Твое Святое»",
+    "subtitle": "О причащении в жизнь вечную и оставление грехов · женская форма"
+  },
+  "thanksgiving.kondak-glas-6-j": {
+    "title": "Кондак свт. Иоанну Златоусту, глас 6-й"
+  },
+  "thanksgiving.kondak-glas-6-j-2": {
+    "title": "Кондак свт. Иоанну Златоусту, глас 6-й"
+  },
+  "potreba-health.molitva-1-ya": {
+    "title": "Молитва в болезни",
+    "subtitle": "«Владыко! Я в руках Твоих» — предание себя воле Божией"
+  },
+  "potreba-health.molitva-2-ya-prp-simeona-novogo-bogoslova": {
+    "title": "Молитва прп. Симеона Нового Богослова",
+    "subtitle": "О силе перенести болезнь с благодарением"
+  },
+  "potreba-health.molitvy-bogu": {
+    "title": "Молитвы Господу о болящем",
+    "subtitle": "Тропари и молитва «Благий Человеколюбче»"
+  },
+  "potreba-health.molitvy-ko-presvyatoj-bogorodice": {
+    "title": "Молитвы Богородице и святым о болящих",
+    "subtitle": "Свт. Николаю, вмч. Пантелеимону и другим целителям"
+  },
+  "potreba-path.molitva-1-ya": {
+    "title": "Молитва пред отправлением в путь"
+  },
+  "potreba-path.molitva-2-ya": {
+    "title": "Молитва о путешествующих"
+  },
+  "potreba-sorrow.molitva-iz-tvorenij-svt-dimitriya-rostovskogo": {
+    "title": "Молитва свт. Димитрия Ростовского"
+  },
+  "potreba-sorrow.molitva-ob-izbavlenii-ot-unyniya-sv-ioanna-kronshtadtskogo": {
+    "title": "Молитва от уныния, св. Иоанна Кронштадтского"
+  },
+  "potreba-sorrow.molitva-pred-ikonoj-bozhiej-materi-utoli-moya-pechali": {
+    "title": "Пред иконой «Утоли моя печали»"
+  },
+  "potreba-sorrow.molitva-pred-ikonoj-bozhiej-materi-nechayannaya-radost": {
+    "title": "Пред иконой «Нечаянная радость»"
+  },
+  "potreba-sorrow.molitva-pred-ikonoj-bozhiej-materi-vseh-skorbyashhih-radost": {
+    "title": "Пред иконой «Всех скорбящих Радость»",
+    "subtitle": "Молитва Богородице о скорбящих и обидимых"
+  },
+  "potreba-sorrow.molitva-pred-ikonoj-bozhiej-materi-pokrov-presvyatoj-bogorod": {
+    "title": "Пред иконой «Покров Пресвятой Богородицы»"
+  },
+  "potreba-sorrow.molitva-pred-ikonoj-bozhiej-materi-smolenskaya-odigitriya": {
+    "title": "Пред иконой «Смоленская Одигитрия»"
+  },
+  "bogorodice.kondak-presvyatoj-bogorodice": {
+    "title": "Кондак «Не имамы иныя помощи»",
+    "subtitle": "Прибежище к Богородице в скорби"
+  },
+  "bogorodice.molitvennoe-vozzvanie-ko-presvyatoj-bogorodice-sv-ioanna-kro": {
+    "title": "Воззвание св. Иоанна Кронштадтского",
+    "subtitle": "К Пресвятой Богородице — о истинном Ее почитании"
+  },
+  "communion-prep.molitva-prp-simeona-novogo-bogoslova": {
+    "title": "Молитва перед исповедью",
+    "subtitle": "Прп. Симеона Нового Богослова"
+  }
+}

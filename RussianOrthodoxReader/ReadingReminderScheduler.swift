@@ -16,6 +16,7 @@ final class ReadingReminderScheduler {
     }
 
     private static let requestIDPrefix = "reading-reminder-"
+    private static let planRequestIDPrefix = "plan-reminder-"
     private static let daysAhead = 7
     static let defaultTime = (hour: 20, minute: 0)
 
@@ -148,5 +149,91 @@ final class ReadingReminderScheduler {
             return defaultTime
         }
         return (hour, minute)
+    }
+
+    // MARK: - Напоминания по планам чтения (§4.7)
+
+    /// Пересобирает очередь уведомлений по планам чтения с нуля на то же
+    /// семидневное окно, что и обычные напоминания. Идемпотентен —
+    /// `ReadingPlansStore.reload()` зовёт его при каждой мутации плана, а не
+    /// только при явном изменении настроек.
+    ///
+    /// `removePendingReminders()` фильтрует по своему префиксу
+    /// (`reading-reminder-`), поэтому второе семейство с префиксом
+    /// `plan-reminder-` его не трогает; `applyChain` переиспользуется —
+    /// параллельный вызов `applySettings` и `applyPlanReminders` не
+    /// перемешает удаление и добавление уведомлений одного семейства с
+    /// другим.
+    func applyPlanReminders(_ plans: [ReadingPlanReminderInfo]) async {
+        let previous = applyChain
+        let task = Task { () -> AuthState in
+            _ = await previous?.value
+            return await self.performApplyPlanReminders(plans)
+        }
+        applyChain = task
+        _ = await task.value
+    }
+
+    private func performApplyPlanReminders(_ plans: [ReadingPlanReminderInfo]) async -> AuthState {
+        let state = await currentAuthState()
+        await removePendingPlanReminders()
+        guard state == .authorized else { return state }
+
+        let calendar = Calendar.current
+        let now = Date()
+
+        for info in plans {
+            let (hour, minute) = Self.parseTime(info.reminderTime)
+            for offset in 0..<Self.daysAhead {
+                // Сегодняшнее уведомление не планируем, если план уже
+                // отмечен сегодня — иначе вечером придёт напоминание о том,
+                // что уже сделано. Дни вперёд (offset > 0) это не касается:
+                // мы ещё не знаем, отметит ли пользователь их к сроку.
+                if offset == 0 && info.doneToday { continue }
+
+                guard let day = calendar.date(byAdding: .day, value: offset, to: calendar.startOfDay(for: now)),
+                      let fireDate = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day),
+                      fireDate > now
+                else { continue }
+
+                let content = UNMutableNotificationContent()
+                content.title = info.title
+                content.body = info.nextUnitLabel
+                content.sound = .default
+
+                let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
+                let request = UNNotificationRequest(
+                    identifier: Self.planReminderID(planUUID: info.uuid, day: day),
+                    content: content,
+                    trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+                )
+
+                do {
+                    try await center.add(request)
+                } catch {
+                    logger.error("Не удалось запланировать напоминание по плану: \(error.localizedDescription, privacy: .public)")
+                }
+            }
+        }
+        return state
+    }
+
+    private func removePendingPlanReminders() async {
+        let pending = await center.pendingNotificationRequests()
+        let ids = pending.map(\.identifier).filter { $0.hasPrefix(Self.planRequestIDPrefix) }
+        guard !ids.isEmpty else { return }
+        center.removePendingNotificationRequests(withIdentifiers: ids)
+    }
+
+    /// Снимает сегодняшнее напоминание конкретного плана сразу после отметки
+    /// «прочитано» (`ReadingPlansStore.markDone`) — не дожидаясь следующей
+    /// пересборки очереди через `applyPlanReminders`.
+    func cancelTodayPlanReminder(planUUID: String) {
+        let id = Self.planReminderID(planUUID: planUUID, day: Date())
+        center.removePendingNotificationRequests(withIdentifiers: [id])
+    }
+
+    private static func planReminderID(planUUID: String, day: Date) -> String {
+        planRequestIDPrefix + planUUID + "-" + LiturgicalRepository.dateKey(from: day)
     }
 }

@@ -62,6 +62,84 @@ private struct OrthodoxCrossShape: Shape {
     }
 }
 
+/// Просфора в линейном стиле — двухъярусный круглый хлебец (широкий низ,
+/// меньший верхний ярус) с печатью наверху: крест внутри квадрата, чьи
+/// перекладины делят печать на четыре части (места букв «ИС ХС / НИ КА»).
+/// Заменяет `cup.and.saucer`, читающийся как кофейная чашка, в карточке
+/// категории «Подготовка к Причащению».
+struct ProsphoraIcon: View {
+    var color: Color
+    var lineWidth: CGFloat = 1.6
+
+    var body: some View {
+        ProsphoraShape()
+            .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
+    }
+}
+
+private struct ProsphoraShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let w = rect.width
+        let h = rect.height
+        let cx = rect.midX
+        let minY = rect.minY
+
+        // Два коротких «барабана» (низкий широкий + низкий узкий), почти без
+        // конусности по бокам — так читается как приплюснутый круглый
+        // хлебец, а не конус/лампа/юла. Нижний ярус:
+        let bottomBaseY = minY + 0.88 * h
+        let bottomRimY = minY + 0.64 * h
+        let bottomRX = 0.46 * w
+        let bottomRimRX = 0.44 * w // почти тот же радиус — борта нижнего яруса вертикальны
+        let bottomRY = 0.05 * h
+
+        p.addEllipse(in: CGRect(x: cx - bottomRX, y: bottomBaseY - bottomRY,
+                                 width: bottomRX * 2, height: bottomRY * 2))
+        p.addEllipse(in: CGRect(x: cx - bottomRimRX, y: bottomRimY - bottomRY * 0.9,
+                                 width: bottomRimRX * 2, height: bottomRY * 1.8))
+        p.move(to: CGPoint(x: cx - bottomRX, y: bottomBaseY))
+        p.addLine(to: CGPoint(x: cx - bottomRimRX, y: bottomRimY))
+        p.move(to: CGPoint(x: cx + bottomRX, y: bottomBaseY))
+        p.addLine(to: CGPoint(x: cx + bottomRimRX, y: bottomRimY))
+
+        // Уступ — плоская «полочка» нижнего яруса, на которую поставлен
+        // верхний, меньший ярус.
+        let topBaseRX = 0.24 * w
+        p.move(to: CGPoint(x: cx - bottomRimRX, y: bottomRimY))
+        p.addLine(to: CGPoint(x: cx - topBaseRX, y: bottomRimY))
+        p.move(to: CGPoint(x: cx + bottomRimRX, y: bottomRimY))
+        p.addLine(to: CGPoint(x: cx + topBaseRX, y: bottomRimY))
+
+        // Верхний ярус — такой же короткий барабан, поменьше.
+        let topRimY = minY + 0.34 * h
+        let topRimRX = 0.22 * w
+        let topRY = 0.045 * h
+
+        p.addEllipse(in: CGRect(x: cx - topBaseRX, y: bottomRimY - topRY,
+                                 width: topBaseRX * 2, height: topRY * 2))
+        p.addEllipse(in: CGRect(x: cx - topRimRX, y: topRimY - topRY,
+                                 width: topRimRX * 2, height: topRY * 2))
+        p.move(to: CGPoint(x: cx - topBaseRX, y: bottomRimY))
+        p.addLine(to: CGPoint(x: cx - topRimRX, y: topRimY))
+        p.move(to: CGPoint(x: cx + topBaseRX, y: bottomRimY))
+        p.addLine(to: CGPoint(x: cx + topRimRX, y: topRimY))
+
+        // Печать: квадрат с крестом внутри (крест делит квадрат на 4 части —
+        // места букв «ИС ХС / НИ КА»), стоит на верхней плоскости хлеба.
+        let sealHalf = 0.14 * w
+        let sealTop = minY + 0.06 * h
+        let sealBottom = minY + 0.26 * h
+        p.addRect(CGRect(x: cx - sealHalf, y: sealTop, width: sealHalf * 2, height: sealBottom - sealTop))
+        p.move(to: CGPoint(x: cx, y: sealTop))
+        p.addLine(to: CGPoint(x: cx, y: sealBottom))
+        p.move(to: CGPoint(x: cx - sealHalf, y: (sealTop + sealBottom) / 2))
+        p.addLine(to: CGPoint(x: cx + sealHalf, y: (sealTop + sealBottom) / 2))
+
+        return p
+    }
+}
+
 // MARK: - Корневой экран «Молитвы»
 
 struct PrayersView: View {
@@ -132,6 +210,19 @@ struct PrayersView: View {
                                 PomyannikCard()
                             }
                             .buttonStyle(.plain)
+
+                            // «Мои чтения» — сразу под помянником, выше «Моего
+                            // правила» (§5.2 п.2 akathist_psalter_design.md).
+                            // Без фильтра — все активные планы; отфильтрованный
+                            // вариант для вкладки «Библия» подключает пакет D.
+                            // onOpen — переход к текущей единице плана (акафист,
+                            // часть канона или молитва по кафизме); для кафизмы
+                            // по «Славам» цель тоже находится в молитвослове,
+                            // поэтому `prayerSlug` подходит для всех видов плана.
+                            MyReadingsCard(onOpen: { plan in
+                                let target = plan.kind.target(for: plan.nextUnitIndex)
+                                path.append(.prayer(slug: target.prayerSlug))
+                            })
 
                             if !userData.myRuleSlugs.isEmpty {
                                 Button {
@@ -210,6 +301,23 @@ struct PrayersView: View {
             if categories.isEmpty {
                 categories = PrayersRepository.shared.categories()
             }
+            #if DEBUG
+            // SINODAL_OPEN_PRAYER=<slug> / SINODAL_OPEN_PLAN_SETUP=<slug> /
+            // SINODAL_OPEN_CONTENTS=<slug> / SINODAL_OPEN_TYPOGRAPHY=<slug> —
+            // все открывают молитву; соответствующий лист открывает уже сам
+            // PrayerDetailView, увидев совпадение слага в своём .task.
+            if let slug = DebugLaunchHooks.openPrayerSlug
+                ?? DebugLaunchHooks.openPlanSetupSlug
+                ?? DebugLaunchHooks.openContentsSlug
+                ?? DebugLaunchHooks.openTypographySlug,
+               path.isEmpty {
+                path = [.prayer(slug: slug)]
+            }
+            if DebugLaunchHooks.openAkafistyList, path.isEmpty,
+               let category = PrayersRepository.shared.category(slug: "akafisty") {
+                path = [.category(category)]
+            }
+            #endif
         }
         .onChange(of: appState.prayersResetTrigger) { _, _ in
             path.removeAll()
@@ -258,6 +366,12 @@ struct PrayerSearchView: View {
 
     @State private var query = ""
     @State private var results: [PrayerSearchResult] = []
+    @State private var searchTask: Task<Void, Never>?
+    /// Отдельный от родительского PrayersView стек — этот экран открывается
+    /// шитом со своим NavigationStack. Переиспользует PrayersRoute, поэтому
+    /// разделы-результаты (search_design.md §3.4, Tier 2) открываются тем же
+    /// PrayerListView/PrayerSequenceView, что и обычный просмотр каталога.
+    @State private var path: [PrayersRoute] = []
     @FocusState private var searchFocused: Bool
 
     private var typ: AppTypography { AppTypography(base: userFontSize) }
@@ -303,7 +417,7 @@ struct PrayerSearchView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             VStack(spacing: 0) {
                 searchField
 
@@ -319,10 +433,12 @@ struct PrayerSearchView: View {
                     ScrollView {
                         VStack(spacing: 0) {
                             ForEach(Array(results.enumerated()), id: \.element.id) { index, result in
-                                NavigationLink(value: result.slug) {
-                                    resultRow(result)
+                                if let route = route(for: result) {
+                                    NavigationLink(value: route) {
+                                        resultRow(result)
+                                    }
+                                    .buttonStyle(.plain)
                                 }
-                                .buttonStyle(.plain)
 
                                 if index < results.count - 1 {
                                     Rectangle()
@@ -345,9 +461,19 @@ struct PrayerSearchView: View {
             .navigationTitle("Поиск")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.light, for: .navigationBar)
             #endif
-            .navigationDestination(for: String.self) { slug in
-                PrayerDetailView(slug: slug)
+            .navigationDestination(for: PrayersRoute.self) { route in
+                switch route {
+                case .category(let category):
+                    PrayerListView(category: category, path: $path)
+                case .prayer(let slug):
+                    PrayerDetailView(slug: slug)
+                case .sequence(let category):
+                    PrayerSequenceView(category: category)
+                case .pomyannik, .myRule, .myRuleRead:
+                    EmptyView()
+                }
             }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -360,7 +486,38 @@ struct PrayerSearchView: View {
         #endif
         .onAppear { searchFocused = true }
         .onChange(of: query) { _, newValue in
-            results = PrayersRepository.shared.search(query: newValue)
+            performSearch(newValue)
+        }
+    }
+
+    /// Раздел-результат (Tier 2) ведёт в тот же PrayerListView, что и обычный
+    /// просмотр каталога; молитва — как раньше, в PrayerDetailView.
+    private func route(for result: PrayerSearchResult) -> PrayersRoute? {
+        switch result.kind {
+        case .prayer:
+            return .prayer(slug: result.slug)
+        case .category(let slug):
+            guard let category = PrayersRepository.shared.category(slug: slug) else { return nil }
+            return .category(category)
+        }
+    }
+
+    /// Дебаунс ~120 мс (search_design.md §3.8) — с FTS5 сам поиск укладывается
+    /// в доли миллисекунды, это чисто косметика против перезапуска на каждый
+    /// символ длинного запроса.
+    private func performSearch(_ text: String) {
+        searchTask?.cancel()
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 2 else {
+            results = []
+            return
+        }
+        searchTask = Task {
+            try? await Task.sleep(nanoseconds: 120_000_000)
+            guard !Task.isCancelled else { return }
+            let found = PrayersRepository.shared.search(query: trimmed)
+            guard !Task.isCancelled else { return }
+            results = found
         }
     }
 
@@ -378,27 +535,75 @@ struct PrayerSearchView: View {
         .padding(.horizontal, 40)
     }
 
+    /// Обычная молитва — заголовок, подзаголовок (если есть) и раздел.
+    /// Раздел-результат (Tier 2, search_design.md §3.4) — отдельный стиль
+    /// строки: иконка папки вместо контекстной строки снизу, без categoryTitle
+    /// (для .category она всегда пустая).
+    @ViewBuilder
     private func resultRow(_ result: PrayerSearchResult) -> some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(result.title)
-                    .font(AppFont.regular(typ.body))
-                    .foregroundColor(theme.text)
-                    .multilineTextAlignment(.leading)
-                Text(result.categoryTitle)
-                    .font(AppFont.regular(typ.caption))
+        switch result.kind {
+        case .prayer:
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(result.title)
+                        .font(AppFont.regular(typ.callout))
+                        .foregroundColor(theme.text)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(2)
+                    if let subtitle = result.subtitle, !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(AppFont.regular(typ.footnote))
+                            .foregroundColor(theme.muted)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(1)
+                    }
+                    Text(result.categoryTitle)
+                        .font(AppFont.regular(typ.footnote))
+                        .foregroundColor(theme.muted)
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .medium))
                     .foregroundColor(theme.muted)
             }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+            .contentShape(Rectangle())
+        case .category:
+            HStack(spacing: 12) {
+                Image(systemName: "folder.fill")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(theme.accent)
+                    .frame(width: 20)
 
-            Spacer(minLength: 0)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(result.title)
+                        .font(AppFont.medium(typ.callout))
+                        .foregroundColor(theme.text)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(2)
+                    if let subtitle = result.subtitle, !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(AppFont.regular(typ.footnote))
+                            .foregroundColor(theme.muted)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(1)
+                    }
+                }
 
-            Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(theme.muted)
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(theme.muted)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+            .background(theme.accent.opacity(0.06))
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
-        .contentShape(Rectangle())
     }
 }
 
@@ -462,10 +667,21 @@ private struct PrayerCategoryCard: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            Image(systemName: category.icon ?? "book.closed")
-                .font(.system(size: 24, weight: .light))
-                .foregroundColor(theme.accent)
-                .frame(width: 40)
+            // Просфора вместо `cup.and.saucer` (кофейная чашка на вид) для
+            // категории «Подготовка к Причащению». Источник данных
+            // (Tools/data/molitvoslov_sources.json) пока хранит старое имя
+            // "cup.and.saucer" — сопоставляем оба, пока его не переключат на
+            // "prosphora".
+            if category.icon == "prosphora" || category.icon == "cup.and.saucer" {
+                ProsphoraIcon(color: theme.accent)
+                    .frame(width: 27, height: 22)
+                    .frame(width: 40)
+            } else {
+                Image(systemName: category.icon ?? "book.closed")
+                    .font(.system(size: 24, weight: .light))
+                    .foregroundColor(theme.accent)
+                    .frame(width: 40)
+            }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(category.title)
@@ -523,6 +739,17 @@ struct PrayerListView: View {
 
                         if let subtitle = category.subtitle {
                             Text(subtitle)
+                                .font(AppFont.regular(typ.footnote))
+                                .foregroundColor(theme.muted)
+                        }
+
+                        // Подсказка про «Читать ежедневно» там, где её
+                        // естественно искать — списки акафистов и Псалтири
+                        // (§5.4 akathist_psalter_design.md): без неё функция
+                        // остаётся незаметной для тех, кто листает раздел, а
+                        // не заходит в конкретный текст.
+                        if let hint = Self.planHint(forCategorySlug: category.slug) {
+                            Text(hint)
                                 .font(AppFont.regular(typ.footnote))
                                 .foregroundColor(theme.muted)
                         }
@@ -596,6 +823,17 @@ struct PrayerListView: View {
             }
         }
     }
+
+    private static func planHint(forCategorySlug slug: String) -> String? {
+        switch slug {
+        case "akafisty":
+            return "Любой акафист можно читать ежедневно — 7, 12 или 40 дней: откройте акафист и нажмите «Читать ежедневно»."
+        case "psaltir":
+            return "Псалтирь можно читать по плану — по кафизме в день."
+        default:
+            return nil
+        }
+    }
 }
 
 // MARK: - Карточка со списком молитв (строки с разделителями)
@@ -618,13 +856,14 @@ struct PrayerRowsCard: View {
                     HStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(prayer.title)
-                                .font(AppFont.regular(typ.body))
+                                .font(AppFont.regular(typ.callout))
                                 .foregroundColor(theme.text)
                                 .multilineTextAlignment(.leading)
+                                .lineLimit(2)
 
                             if let subtitle = prayer.subtitle {
                                 Text(subtitle)
-                                    .font(AppFont.regular(typ.caption))
+                                    .font(AppFont.regular(typ.footnote))
                                     .foregroundColor(theme.muted)
                                     .multilineTextAlignment(.leading)
                             }

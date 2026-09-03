@@ -16,7 +16,9 @@ final class PersistenceController {
             ReadingReferenceEntity.self,
             PrayerBookmarkEntity.self,
             PomyannikEntryEntity.self,
-            MyRuleItemEntity.self
+            MyRuleItemEntity.self,
+            ReadingPlanEntity.self,
+            ReadingPlanUnitEntity.self
         ])
 
         // cloudKitDatabase: .none — this store is a local API cache and must not

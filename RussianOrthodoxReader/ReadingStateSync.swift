@@ -509,7 +509,14 @@ final class ReadingStateSyncService: NSObject, CKSyncEngineDelegate, @unchecked 
     private static let subscriptionID = "reading-state-sync"
     private static let writeDebounceNanoseconds: UInt64 = 2_000_000_000
 
-    private let container = CKContainer(identifier: containerIdentifier)
+    // `lazy`, not eager `let` — see the matching note on `CloudSyncService.container`
+    // in CloudSyncManager.swift. Constructing a bare `CKContainer` crashes
+    // outright without matching embedded iCloud entitlements (e.g. a build
+    // installed via `simctl install`/`launch` outside Xcode's own
+    // debugger-attached run); `lazy` means merely constructing
+    // `ReadingStateSyncService.shared` no longer risks that — only the
+    // methods below that are guarded by `ScreenshotMode.isActive` ever touch it.
+    private lazy var container = CKContainer(identifier: Self.containerIdentifier)
     private let debouncer = ReadingSyncDebouncer()
     private let engineCallScheduler = ReadingSyncEngineCallScheduler()
     private let store = ReadingStateSyncStore(
@@ -541,6 +548,7 @@ final class ReadingStateSyncService: NSObject, CKSyncEngineDelegate, @unchecked 
     }
 
     func start() async {
+        guard !ScreenshotMode.isActive else { return }
         let shouldStart = await store.beginEngineStartIfNeeded()
         await publishSnapshot()
 
@@ -580,6 +588,7 @@ final class ReadingStateSyncService: NSObject, CKSyncEngineDelegate, @unchecked 
     }
 
     func setSyncEnabled(_ enabled: Bool) async {
+        guard !ScreenshotMode.isActive else { return }
         await store.setSyncEnabled(enabled)
         if !enabled {
             await debouncer.cancel()
@@ -592,6 +601,7 @@ final class ReadingStateSyncService: NSObject, CKSyncEngineDelegate, @unchecked 
     }
 
     func refreshNow() async {
+        guard !ScreenshotMode.isActive else { return }
         guard await store.isSyncEnabled() else {
             await publishSnapshot()
             return
@@ -614,7 +624,10 @@ final class ReadingStateSyncService: NSObject, CKSyncEngineDelegate, @unchecked 
         let shouldSync = await store.updateLocalStateFromUser(state)
         await publishSnapshot()
 
-        guard shouldSync else { return }
+        // Local cache + snapshot above are fine to keep even in screenshot
+        // mode (no CloudKit involved); only the debounced engine flush below
+        // would touch `syncEngine`/`container`.
+        guard shouldSync, !ScreenshotMode.isActive else { return }
 
         _ = await store.beginEngineStartIfNeeded()
         await debouncer.schedule(delayNanoseconds: Self.writeDebounceNanoseconds) { [weak self] in

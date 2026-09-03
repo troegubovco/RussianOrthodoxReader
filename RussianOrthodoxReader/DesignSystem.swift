@@ -76,6 +76,9 @@ struct AppTypography {
     var headline: CGFloat { base * 1.06 }
     /// Page titles (~39pt at 33)
     var title: CGFloat { base * 1.18 }
+    /// Prayer page title (`PrayerDetailView`) — headline, capped so it stays
+    /// readable at large reading sizes instead of dominating the screen.
+    var prayerTitle: CGFloat { min(headline, 30) }
 }
 
 // MARK: - Layout

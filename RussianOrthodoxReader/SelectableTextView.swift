@@ -199,6 +199,7 @@ struct WordDefinitionSheet: View {
             .navigationTitle(word)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.light, for: .navigationBar)
             #endif
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {

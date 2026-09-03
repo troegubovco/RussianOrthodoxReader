@@ -43,6 +43,10 @@ struct RussianOrthodoxReaderApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(appState)
+                // У приложения нет тёмной темы (кремовый фон всегда), а системные
+                // заголовки листов следовали за тёмным режимом устройства и
+                // рисовались белым по кремовому. Фиксируем светлую схему глобально.
+                .preferredColorScheme(.light)
                 #if os(macOS)
                 .frame(minWidth: 800, minHeight: 600)
                 #endif
@@ -50,6 +54,15 @@ struct RussianOrthodoxReaderApp: App {
                 .task {
                     await appState.refreshFromCloud()
                 }
+                #if DEBUG
+                // `SINODAL_SEARCH_REPORT=1` — dump the prayer-search worked
+                // examples (search_design.md §3.7) to stdout once at launch.
+                .task {
+                    if ProcessInfo.processInfo.environment["SINODAL_SEARCH_REPORT"] == "1" {
+                        PrayersRepository.debugSearchReport()
+                    }
+                }
+                #endif
         }
         .modelContainer(PersistenceController.shared.container)
         #if os(macOS)

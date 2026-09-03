@@ -119,6 +119,7 @@ struct PomyannikAddSheet: View {
                              : (list == .health ? "О здравии" : "О упокоении"))
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.light, for: .navigationBar)
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

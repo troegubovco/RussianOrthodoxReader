@@ -4,16 +4,21 @@ import SwiftUI
 /// все молитвы подряд, как в печатном молитвослове, с заголовками разделов.
 struct PrayerSequenceView: View {
     let navTitle: String
-    private let fetch: () -> [Prayer]
+    /// Загрузка молитв последования; принимает текущее значение переключателя
+    /// «женская форма» (игнорируется в init(title:slugs:) — там фильтрация не нужна).
+    private let fetch: (Bool) -> [Prayer]
 
     init(category: PrayerCategory) {
         self.navTitle = category.title
-        self.fetch = { PrayersRepository.shared.fullPrayers(inCategory: category.slug) }
+        let categorySlug = category.slug
+        self.fetch = { feminine in
+            PrayersRepository.shared.fullPrayers(inCategory: categorySlug, feminine: feminine)
+        }
     }
 
     init(title: String, slugs: [String]) {
         self.navTitle = title
-        self.fetch = { PrayersRepository.shared.prayers(slugs: slugs) }
+        self.fetch = { _ in PrayersRepository.shared.prayers(slugs: slugs) }
     }
 
     @EnvironmentObject private var appState: AppState
@@ -24,6 +29,7 @@ struct PrayerSequenceView: View {
     @State private var showTypography = false
     @AppStorage("prayerLanguage") private var languageRaw = PrayerLanguage.churchSlavonic.rawValue
     @AppStorage("prayerShowStress") private var showStress = true
+    @AppStorage(PrayersRepository.feminineFormsKey) private var feminineForms = false
 
     private var typ: AppTypography { AppTypography(base: userFontSize) }
 
@@ -71,7 +77,7 @@ struct PrayerSequenceView: View {
                     ForEach(prayers) { prayer in
                         VStack(alignment: .leading, spacing: 12) {
                             Text(prayer.title)
-                                .font(AppFont.semiBold(typ.callout))
+                                .font(AppFont.semiBold(min(typ.callout, 28)))
                                 .foregroundColor(theme.accent)
                                 .lineSpacing(4)
                                 .padding(.top, 8)
@@ -113,8 +119,11 @@ struct PrayerSequenceView: View {
         .prayerSearchToolbar()
         .task {
             if prayers.isEmpty {
-                prayers = fetch()
+                prayers = fetch(feminineForms)
             }
+        }
+        .onChange(of: feminineForms) { _, _ in
+            prayers = fetch(feminineForms)
         }
     }
 }

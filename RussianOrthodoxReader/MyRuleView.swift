@@ -94,6 +94,7 @@ struct MyRuleView: View {
                             Text(prayer.title)
                                 .font(AppFont.regular(typ.callout))
                                 .foregroundColor(theme.text)
+                                .lineLimit(2)
                             Spacer(minLength: 0)
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 13, weight: .medium))
@@ -124,6 +125,7 @@ struct MyRuleView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(theme.background, for: .navigationBar)
+        .toolbarColorScheme(.light, for: .navigationBar)
         #endif
         .tabBarBottomClearance()
     }

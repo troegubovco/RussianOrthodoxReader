@@ -6,8 +6,35 @@
 	objectVersion = 100;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		040AA8C83396DCC7BA93209E /* RussianOrthodoxReaderWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = B200CF0F5BF84A847AA89A39 /* RussianOrthodoxReaderWatch.app */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		D2339303E455DF1CE0209653 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 91B0187C2F5009350002FB19 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 386F69E6B1123FD8AE7D4EBE;
+			remoteInfo = RussianOrthodoxReaderWatch;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		2D1FFEEA5BA108EF60BCC802 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolder = Product;
+			files = (
+				040AA8C83396DCC7BA93209E /* RussianOrthodoxReaderWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		91B018842F5009350002FB19 /* RussianOrthodoxReader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RussianOrthodoxReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B200CF0F5BF84A847AA89A39 /* RussianOrthodoxReaderWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RussianOrthodoxReaderWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -22,6 +49,16 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		35F9694CEA88CEDED7C06F7B /* RussianOrthodoxReaderWatch */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = RussianOrthodoxReaderWatch;
+			sourceTree = "<group>";
+		};
+		7146A9635AC263BE08239FB2 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
 		91B018862F5009350002FB19 /* RussianOrthodoxReader */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -38,6 +75,11 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		854E99E25B6CD048B4DBE082 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
 		91B018812F5009350002FB19 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
@@ -50,6 +92,8 @@
 			isa = PBXGroup;
 			children = (
 				91B018862F5009350002FB19 /* RussianOrthodoxReader */,
+				7146A9635AC263BE08239FB2 /* Shared */,
+				35F9694CEA88CEDED7C06F7B /* RussianOrthodoxReaderWatch */,
 				91B018852F5009350002FB19 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -58,6 +102,7 @@
 			isa = PBXGroup;
 			children = (
 				91B018842F5009350002FB19 /* RussianOrthodoxReader.app */,
+				B200CF0F5BF84A847AA89A39 /* RussianOrthodoxReaderWatch.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -65,6 +110,25 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		386F69E6B1123FD8AE7D4EBE /* RussianOrthodoxReaderWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4F12FE70EEB7E450F1F24FD9 /* Build configuration list for PBXNativeTarget "RussianOrthodoxReaderWatch" */;
+			buildPhases = (
+				7C78D8089873ED98B36A985A /* Sources */,
+				854E99E25B6CD048B4DBE082 /* Frameworks */,
+				E513D89D9D6F5E2D255B58DF /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				35F9694CEA88CEDED7C06F7B /* RussianOrthodoxReaderWatch */,
+				7146A9635AC263BE08239FB2 /* Shared */,
+			);
+			name = RussianOrthodoxReaderWatch;
+			productName = RussianOrthodoxReaderWatch;
+			productReference = B200CF0F5BF84A847AA89A39 /* RussianOrthodoxReaderWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
 		91B018832F5009350002FB19 /* RussianOrthodoxReader */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 91B0188F2F5009370002FB19 /* Build configuration list for PBXNativeTarget "RussianOrthodoxReader" */;
@@ -72,10 +136,15 @@
 				91B018802F5009350002FB19 /* Sources */,
 				91B018812F5009350002FB19 /* Frameworks */,
 				91B018822F5009350002FB19 /* Resources */,
+				2D1FFEEA5BA108EF60BCC802 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
+			dependencies = (
+				1E7A26E9F6A1B8C268D5AB9B /* PBXTargetDependency */,
+			);
 			fileSystemSynchronizedGroups = (
+				7146A9635AC263BE08239FB2 /* Shared */,
 				91B018862F5009350002FB19 /* RussianOrthodoxReader */,
 			);
 			name = RussianOrthodoxReader;
@@ -93,6 +162,9 @@
 				LastSwiftUpdateCheck = 2620;
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
+					386F69E6B1123FD8AE7D4EBE = {
+						CreatedOnToolsVersion = 26.2;
+					};
 					91B018832F5009350002FB19 = {
 						CreatedOnToolsVersion = 26.2;
 					};
@@ -112,6 +184,7 @@
 			projectRoot = "";
 			targets = (
 				91B018832F5009350002FB19 /* RussianOrthodoxReader */,
+				386F69E6B1123FD8AE7D4EBE /* RussianOrthodoxReaderWatch */,
 			);
 		};
 /* End PBXProject section */
@@ -122,9 +195,19 @@
 			files = (
 			);
 		};
+		E513D89D9D6F5E2D255B58DF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		7C78D8089873ED98B36A985A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 		91B018802F5009350002FB19 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
@@ -132,7 +215,48 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		1E7A26E9F6A1B8C268D5AB9B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			platformFilter = ios;
+			target = 386F69E6B1123FD8AE7D4EBE /* RussianOrthodoxReaderWatch */;
+			targetProxy = D2339303E455DF1CE0209653 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		0AB44B3EBF6845F1F5BD3B4A /* Release configuration for PBXNativeTarget "RussianOrthodoxReaderWatch" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "RussianOrthodoxReader 0.1";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = QYY9CDDWYA;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Синодал";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = OG.RussianOrthodoxReader;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = YES;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				MARKETING_VERSION = 1.4;
+				PRODUCT_BUNDLE_IDENTIFIER = OG.RussianOrthodoxReader.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 11.0;
+			};
+			name = Release;
+		};
 		91B0188D2F5009370002FB19 /* Debug configuration for PBXProject "RussianOrthodoxReader" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -361,9 +485,50 @@
 			};
 			name = Release;
 		};
+		A4D63AF402C2217A8338FD46 /* Debug configuration for PBXNativeTarget "RussianOrthodoxReaderWatch" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "RussianOrthodoxReader 0.1";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = QYY9CDDWYA;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Синодал";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = OG.RussianOrthodoxReader;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = YES;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				MARKETING_VERSION = 1.4;
+				PRODUCT_BUNDLE_IDENTIFIER = OG.RussianOrthodoxReader.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 11.0;
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		4F12FE70EEB7E450F1F24FD9 /* Build configuration list for PBXNativeTarget "RussianOrthodoxReaderWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A4D63AF402C2217A8338FD46 /* Debug configuration for PBXNativeTarget "RussianOrthodoxReaderWatch" */,
+				0AB44B3EBF6845F1F5BD3B4A /* Release configuration for PBXNativeTarget "RussianOrthodoxReaderWatch" */,
+			);
+			defaultConfigurationName = Release;
+		};
 		91B0187F2F5009350002FB19 /* Build configuration list for PBXProject "RussianOrthodoxReader" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

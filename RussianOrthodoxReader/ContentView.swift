@@ -17,6 +17,18 @@ struct ContentView: View {
     /// hierarchy (to preserve scroll position) whenever `readerRoute != nil`.
     @State private var isReadingMode: Bool = false
     @State private var activeReaderChapterRoute: ReaderRoute? = nil
+    /// Verse to scroll to and highlight on the next reader open — set from a
+    /// Bible search result tap (`BibleView.onSelectVerse`). Cleared once the
+    /// reader reports that chapter as visible. See search_design.md §4.5.
+    @State private var readerInitialVerse: Int? = nil
+    /// «Слава» (1...3) to scroll to on the next reader open when the route is
+    /// `.kathisma` — set from a `PsalterSheet` «Слава» sub-row tap
+    /// (`BibleView.onSelectKathisma`). See akathist_psalter_design.md §6.
+    @State private var readerInitialSlava: Int? = nil
+    #if DEBUG
+    /// Set from the `SINODAL_OPEN_SEARCH` DEBUG launch hook (DebugLaunchHooks.swift).
+    @State private var debugSearchQuery: String? = nil
+    #endif
 
     private let theme = OrthodoxColors.fallback
 
@@ -52,7 +64,10 @@ struct ContentView: View {
                     },
                     onVisibleRouteChange: { route in
                         activeReaderChapterRoute = route
-                    }
+                    },
+                    onOpenVerse: openReadingAtVerse,
+                    initialVerse: readerInitialVerse,
+                    initialSlava: readerInitialSlava
                 )
                 .opacity(isReadingMode ? 1 : 0)
                 .allowsHitTesting(isReadingMode)
@@ -81,7 +96,55 @@ struct ContentView: View {
                 readerRoute = saved
                 activeReaderChapterRoute = saved
             }
+            #if DEBUG
+            BibleReferenceQuery.runSelfCheck()
+            if let query = DebugLaunchHooks.openSearchQuery {
+                appState.selectedTab = .bible
+                debugSearchQuery = query
+            }
+            if let target = DebugLaunchHooks.openVerse {
+                appState.selectedTab = .bible
+                // Skip the "prayer before reading" gate for this hook: on a
+                // fresh install `requestReading()` would show that overlay
+                // instead of opening the reader, and its pending-route path
+                // doesn't carry a verse target (see `openReadingAtVerse`), so
+                // the verse would silently get lost.
+                appState.hasPrayedToday = true
+                openReadingAtVerse(bookId: target.bookId, chapter: target.chapter, verse: target.verse)
+            }
+            // Package D: Псалтирь по кафизмам — see DebugLaunchHooks.swift.
+            if DebugLaunchHooks.openPsalter {
+                appState.selectedTab = .bible
+            }
+            if let number = DebugLaunchHooks.openKathismaNumber {
+                appState.selectedTab = .bible
+                // Skip the prayer gate for this hook, same reasoning as
+                // `SINODAL_OPEN_VERSE` above.
+                appState.hasPrayedToday = true
+                openKathisma(number: number, initialSlava: DebugLaunchHooks.openKathismaSlava)
+            }
+            // Package C: «Мои чтения» — see DebugLaunchHooks.swift.
+            DebugLaunchHooks.applyDemoPlanIfNeeded()
+            if DebugLaunchHooks.openPrayerSlug != nil
+                || DebugLaunchHooks.openPlanSetupSlug != nil
+                || DebugLaunchHooks.openContentsSlug != nil
+                || DebugLaunchHooks.openTypographySlug != nil
+                || DebugLaunchHooks.openPrayersRoot
+                || DebugLaunchHooks.openAkafistyList
+                || DebugLaunchHooks.openBookmarks {
+                appState.selectedTab = .prayers
+            }
+            DebugLaunchHooks.seedBookmarksIfNeeded()
+            #endif
         }
+        #if DEBUG
+        .sheet(isPresented: Binding(
+            get: { debugSearchQuery != nil },
+            set: { if !$0 { debugSearchQuery = nil } }
+        )) {
+            BibleSearchView(initialQuery: debugSearchQuery ?? "", onSelectVerse: openReadingAtVerse)
+        }
+        #endif
         .onChange(of: appState.lastReadingRoute) { _, newRoute in
             // Pick up cloud-synced reading position when not actively reading.
             if let newRoute, case .chapter = newRoute {
@@ -145,7 +208,10 @@ struct ContentView: View {
                     },
                     onVisibleRouteChange: { route in
                         activeReaderChapterRoute = route
-                    }
+                    },
+                    onOpenVerse: openReadingAtVerse,
+                    initialVerse: readerInitialVerse,
+                    initialSlava: readerInitialSlava
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(theme.background)
@@ -168,7 +234,9 @@ struct ContentView: View {
             if loadedTabs.contains(.bible) {
                 BibleView(
                     onSelectChapter: openReading,
-                    onResume: resumeAction
+                    onResume: resumeAction,
+                    onSelectVerse: openReadingAtVerse,
+                    onSelectKathisma: openKathisma
                 )
                 .opacity(appState.selectedTab == .bible ? 1 : 0)
                 .zIndex(appState.selectedTab == .bible ? 1 : 0)
@@ -213,7 +281,7 @@ struct ContentView: View {
         case .today:
             TodayView(onOpenReading: openReading)
         case .bible:
-            BibleView(onSelectChapter: openReading, onResume: resumeAction)
+            BibleView(onSelectChapter: openReading, onResume: resumeAction, onSelectVerse: openReadingAtVerse, onSelectKathisma: openKathisma)
         case .prayers:
             PrayersView()
         case .calendar:
@@ -232,9 +300,57 @@ struct ContentView: View {
     }
 
     private func openReading(_ route: ReaderRoute) {
+        // A plain chapter open should never carry over a verse target left
+        // behind by a previous `openReadingAtVerse` call (e.g. Ин 3:16 via
+        // search, then browsing straight to another chapter).
+        readerInitialVerse = nil
+        readerInitialSlava = nil
         if appState.requestReading() {
             persistCurrentReaderRoute(route)
             readerRoute = route
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isReadingMode = true
+            }
+        } else {
+            pendingRoute = route
+        }
+    }
+
+    /// Opens the reader at a specific verse — used by a Bible search result
+    /// tap (`BibleView.onSelectVerse`, wired from `BibleSearchView`). A
+    /// separate function rather than a defaulted `verse:` parameter on
+    /// `openReading` because the latter is passed by reference as a bare
+    /// `(ReaderRoute) -> Void` closure in several places, and a defaulted
+    /// parameter doesn't survive that (Swift keeps the full signature).
+    private func openReadingAtVerse(bookId: String, chapter: Int, verse: Int) {
+        let route = ReaderRoute.chapter(bookId: bookId, chapter: chapter)
+        readerInitialSlava = nil
+        if appState.requestReading() {
+            persistCurrentReaderRoute(route)
+            readerRoute = route
+            readerInitialVerse = verse
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isReadingMode = true
+            }
+        } else {
+            // The prayer-gate pending-route path doesn't carry a verse target;
+            // the chapter still opens correctly once the prayer is read.
+            pendingRoute = route
+        }
+    }
+
+    /// Opens the reader at a kathisma of the Псалтирь по кафизмам, optionally
+    /// scrolled to one of its three «Славы» — used by `BibleView.onSelectKathisma`
+    /// (`PsalterSheet`'s kathisma/«Слава» rows) and the `SINODAL_OPEN_KATHISMA`
+    /// DEBUG launch hook. `.kathisma` routes aren't `.chapter`, so — like
+    /// `.references` — they fall outside `persistCurrentReaderRoute`'s
+    /// "продолжить чтение" persistence; see akathist_psalter_design.md §6.1.
+    private func openKathisma(number: Int, initialSlava: Int?) {
+        readerInitialVerse = nil
+        let route = ReaderRoute.kathisma(number: number)
+        if appState.requestReading() {
+            readerRoute = route
+            readerInitialSlava = initialSlava
             withAnimation(.easeInOut(duration: 0.2)) {
                 isReadingMode = true
             }

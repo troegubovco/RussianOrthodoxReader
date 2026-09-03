@@ -23,10 +23,16 @@ final class PrayersSyncService: NSObject, CKSyncEngineDelegate, @unchecked Senda
         static let pomyannikEntry = "PomyannikEntry"
         static let prayerBookmark = "PrayerBookmark"
         static let myRuleItem = "MyRuleItem"
+        static let readingPlan = "ReadingPlan"
+        static let readingPlanUnit = "ReadingPlanUnit"
     }
 
     private static let bookmarkPrefix = "bm-"
     private static let rulePrefix = "rule-"
+    // Определены в Shared/ReadingPlanModels.swift, чтобы ReadingPlansStore и
+    // этот сервис не могли разойтись в написании префикса.
+    private static let planPrefix = ReadingPlanSync.planPrefix
+    private static let planUnitPrefix = ReadingPlanSync.planUnitPrefix
 
     private let container = CKContainer(identifier: containerIdentifier)
     private let logger = Logger(subsystem: "OG.RussianOrthodoxReader", category: "PrayersSync")
@@ -71,6 +77,18 @@ final class PrayersSyncService: NSObject, CKSyncEngineDelegate, @unchecked Senda
         }
         PrayersSyncHooks.didDeleteRuleItem = { slug in
             Task { await PrayersSyncService.shared.enqueueDelete(recordName: Self.rulePrefix + slug) }
+        }
+        ReadingPlansSyncHooks.didSavePlan = { uuid in
+            Task { await PrayersSyncService.shared.enqueueSave(recordName: Self.planPrefix + uuid) }
+        }
+        ReadingPlansSyncHooks.didDeletePlan = { uuid in
+            Task { await PrayersSyncService.shared.enqueueDelete(recordName: Self.planPrefix + uuid) }
+        }
+        ReadingPlansSyncHooks.didSaveUnit = { recordName in
+            Task { await PrayersSyncService.shared.enqueueSave(recordName: recordName) }
+        }
+        ReadingPlansSyncHooks.didDeleteUnit = { recordName in
+            Task { await PrayersSyncService.shared.enqueueDelete(recordName: recordName) }
         }
         await setSyncEnabled(enabled)
     }
@@ -274,6 +292,44 @@ final class PrayersSyncService: NSObject, CKSyncEngineDelegate, @unchecked Senda
             return record
         }
 
+        if recordName.hasPrefix(planUnitPrefix) {
+            var descriptor = FetchDescriptor<ReadingPlanUnitEntity>(
+                predicate: #Predicate { $0.recordName == recordName })
+            descriptor.fetchLimit = 1
+            guard let unit = try? context.fetch(descriptor).first else { return nil }
+            let record = base ?? CKRecord(
+                recordType: RecordType.readingPlanUnit,
+                recordID: CKRecord.ID(recordName: recordName, zoneID: zoneID))
+            record["planUUID"] = unit.planUUID
+            record["unitIndex"] = unit.unitIndex
+            record["completedOn"] = unit.completedOn
+            record["createdAt"] = unit.createdAt
+            record["modifiedAt"] = unit.modifiedAt
+            return record
+        }
+
+        if recordName.hasPrefix(planPrefix) {
+            let uuid = String(recordName.dropFirst(planPrefix.count))
+            var descriptor = FetchDescriptor<ReadingPlanEntity>(
+                predicate: #Predicate { $0.uuid == uuid })
+            descriptor.fetchLimit = 1
+            guard let plan = try? context.fetch(descriptor).first else { return nil }
+            let record = base ?? CKRecord(
+                recordType: RecordType.readingPlan,
+                recordID: CKRecord.ID(recordName: recordName, zoneID: zoneID))
+            record["kindRaw"] = plan.kindRaw
+            record["subjectSlug"] = plan.subjectSlug
+            record["startDate"] = plan.startDate
+            record["totalUnits"] = plan.totalUnits
+            record["endDateRule"] = plan.endDateRule
+            record["endDate"] = plan.endDate
+            record["reminderTime"] = plan.reminderTime
+            record["isArchived"] = plan.isArchived ? 1 : 0
+            record["createdAt"] = plan.createdAt
+            record["modifiedAt"] = plan.modifiedAt
+            return record
+        }
+
         let uuid = recordName
         var descriptor = FetchDescriptor<PomyannikEntryEntity>(
             predicate: #Predicate { $0.uuid == uuid })
@@ -381,6 +437,60 @@ final class PrayersSyncService: NSObject, CKSyncEngineDelegate, @unchecked Senda
             }
             try? context.save()
 
+        case RecordType.readingPlanUnit:
+            let recordName = record.recordID.recordName
+            var descriptor = FetchDescriptor<ReadingPlanUnitEntity>(
+                predicate: #Predicate { $0.recordName == recordName })
+            descriptor.fetchLimit = 1
+            if let existing = try? context.fetch(descriptor).first {
+                guard remoteModified > existing.modifiedAt else { return }
+                existing.completedOn = record["completedOn"] as? Date ?? existing.completedOn
+                existing.modifiedAt = remoteModified
+            } else {
+                context.insert(ReadingPlanUnitEntity(
+                    recordName: recordName,
+                    planUUID: record["planUUID"] as? String ?? "",
+                    unitIndex: record["unitIndex"] as? Int ?? 0,
+                    completedOn: record["completedOn"] as? Date ?? Date(),
+                    createdAt: record["createdAt"] as? Date ?? Date(),
+                    modifiedAt: remoteModified))
+            }
+            try? context.save()
+
+        case RecordType.readingPlan:
+            let recordName = record.recordID.recordName
+            let uuid = recordName.hasPrefix(planPrefix)
+                ? String(recordName.dropFirst(planPrefix.count))
+                : recordName
+            var descriptor = FetchDescriptor<ReadingPlanEntity>(
+                predicate: #Predicate { $0.uuid == uuid })
+            descriptor.fetchLimit = 1
+            let plan: ReadingPlanEntity
+            if let existing = try? context.fetch(descriptor).first {
+                guard remoteModified > existing.modifiedAt else { return }
+                plan = existing
+            } else {
+                let created = ReadingPlanEntity(
+                    uuid: uuid,
+                    kindRaw: record["kindRaw"] as? String ?? "",
+                    subjectSlug: record["subjectSlug"] as? String,
+                    startDate: record["startDate"] as? Date ?? Date(),
+                    totalUnits: record["totalUnits"] as? Int ?? 0)
+                context.insert(created)
+                plan = created
+            }
+            plan.kindRaw = record["kindRaw"] as? String ?? plan.kindRaw
+            plan.subjectSlug = record["subjectSlug"] as? String
+            plan.startDate = record["startDate"] as? Date ?? plan.startDate
+            plan.totalUnits = record["totalUnits"] as? Int ?? plan.totalUnits
+            plan.endDateRule = record["endDateRule"] as? String
+            plan.endDate = record["endDate"] as? Date
+            plan.reminderTime = record["reminderTime"] as? String
+            plan.isArchived = ((record["isArchived"] as? Int) ?? 0) != 0
+            plan.createdAt = record["createdAt"] as? Date ?? plan.createdAt
+            plan.modifiedAt = remoteModified
+            try? context.save()
+
         case RecordType.pomyannikEntry:
             let uuid = record.recordID.recordName
             var descriptor = FetchDescriptor<PomyannikEntryEntity>(
@@ -447,6 +557,29 @@ final class PrayersSyncService: NSObject, CKSyncEngineDelegate, @unchecked Senda
             return
         }
 
+        if recordName.hasPrefix(planUnitPrefix) {
+            var descriptor = FetchDescriptor<ReadingPlanUnitEntity>(
+                predicate: #Predicate { $0.recordName == recordName })
+            descriptor.fetchLimit = 1
+            if let unit = try? context.fetch(descriptor).first {
+                context.delete(unit)
+                try? context.save()
+            }
+            return
+        }
+
+        if recordName.hasPrefix(planPrefix) {
+            let uuid = String(recordName.dropFirst(planPrefix.count))
+            var descriptor = FetchDescriptor<ReadingPlanEntity>(
+                predicate: #Predicate { $0.uuid == uuid })
+            descriptor.fetchLimit = 1
+            if let plan = try? context.fetch(descriptor).first {
+                context.delete(plan)
+                try? context.save()
+            }
+            return
+        }
+
         let uuid = recordName
         var descriptor = FetchDescriptor<PomyannikEntryEntity>(
             predicate: #Predicate { $0.uuid == uuid })
@@ -469,6 +602,12 @@ final class PrayersSyncService: NSObject, CKSyncEngineDelegate, @unchecked Senda
         }
         if let items = try? context.fetch(FetchDescriptor<MyRuleItemEntity>()) {
             names.append(contentsOf: items.map { rulePrefix + $0.prayerSlug })
+        }
+        if let readingPlans = try? context.fetch(FetchDescriptor<ReadingPlanEntity>()) {
+            names.append(contentsOf: readingPlans.map { planPrefix + $0.uuid })
+        }
+        if let readingPlanUnits = try? context.fetch(FetchDescriptor<ReadingPlanUnitEntity>()) {
+            names.append(contentsOf: readingPlanUnits.map(\.recordName))
         }
         return names
     }

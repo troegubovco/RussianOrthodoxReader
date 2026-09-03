@@ -245,10 +245,11 @@ private struct PomyannikEntryRow: View {
                 Text(noteLine)
                     .font(AppFont.medium(typ.callout))
                     .foregroundColor(theme.text)
+                    .lineLimit(2)
 
                 if entry.inputName.lowercased() != entry.canonicalName.lowercased() {
                     Text("\(entry.inputName) → \(entry.canonicalName)")
-                        .font(AppFont.regular(typ.caption))
+                        .font(AppFont.regular(typ.footnote))
                         .foregroundColor(theme.muted)
                 }
             }
