@@ -33,6 +33,10 @@ final class PrayersUserDataStore: ObservableObject {
         let ruleDescriptor = FetchDescriptor<MyRuleItemEntity>(
             sortBy: [SortDescriptor(\.sortOrder), SortDescriptor(\.createdAt)])
         myRuleSlugs = (try? context.fetch(ruleDescriptor))?.map(\.prayerSlug) ?? []
+
+        // reload() — единственная точка, где меняются данные, доступные
+        // Apple Watch, поэтому именно здесь планируем отправку снимка.
+        WatchSnapshotSender.shared.scheduleSend()
     }
 
     // MARK: - Моё правило

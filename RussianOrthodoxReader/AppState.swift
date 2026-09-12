@@ -381,6 +381,15 @@ class AppState: ObservableObject {
     func refreshFromCloud(force: Bool = false) async {
         handlePotentialDayChange()
         await configureReadingSyncIfNeeded()
+        // Screenshot mode's own contract (see ScreenshotMode.swift) is "no
+        // CloudKit sync starts" — `configureReadingSyncIfNeeded` already
+        // honours that for ReadingStateSyncService, but this settings sync
+        // below was missed, so it still stood up a `CKContainer` (which
+        // reliably crashes when this build has no embedded iCloud
+        // entitlements — a `simctl install`/`launch` build outside Xcode's
+        // own debugger-attached run, e.g. for a DEBUG launch-hook screenshot
+        // pass, never gets one). Gate it the same way.
+        guard !ScreenshotMode.isActive else { return }
         if force {
             await ReadingStateSyncService.shared.refreshNow()
         }
@@ -421,6 +430,10 @@ class AppState: ObservableObject {
     private func configureReadingSyncIfNeeded() async {
         guard !hasConfiguredReadingSync else { return }
         hasConfiguredReadingSync = true
+
+        // Начинаем слушать watchOS-компаньона независимо от режима
+        // скриншотов — это лишь передача снимка, не CloudKit-подписка.
+        WatchSnapshotSender.shared.activate()
 
         // В режиме скриншотов не поднимаем CloudKit — иначе личные записи
         // помянника и позиция чтения подтянутся из iCloud.

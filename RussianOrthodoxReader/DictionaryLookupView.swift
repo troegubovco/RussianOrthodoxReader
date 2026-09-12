@@ -93,6 +93,7 @@ struct DictionaryLookupView: View {
             // Keep the toolbar consistent with the rest of the app on iOS
             .toolbarBackground(theme.card, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar)
             #else
             // On macOS the NavigationStack defaults to a dark unified toolbar;
             // override it with the app's card colour and force light color scheme

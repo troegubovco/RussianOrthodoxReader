@@ -4,11 +4,21 @@ struct BibleView: View {
     let onSelectChapter: (ReaderRoute) -> Void
     /// When non-nil, a "Resume reading" banner is shown at the top of the list.
     var onResume: (() -> Void)? = nil
+    /// bookId, chapter, verse — called when a Bible search result is tapped.
+    /// Optional so existing call sites and `#Preview` keep compiling unchanged.
+    var onSelectVerse: ((String, Int, Int) -> Void)? = nil
+    /// (kathisma number, target «Слава» 1...3 or nil) — called from
+    /// `PsalterSheet` when a kathisma or one of its «Славы» is tapped.
+    /// Optional so existing call sites and `#Preview` keep compiling
+    /// unchanged. See akathist_psalter_design.md §6.
+    var onSelectKathisma: ((Int, Int?) -> Void)? = nil
 
     @EnvironmentObject var appState: AppState
     @Environment(\.userFontSize) private var userFontSize
     @State private var selectedTestament: Testament = .new
     @State private var chapterPickerBook: BibleBook?
+    @State private var showSearch = false
+    @State private var showPsalter = false
     private let theme = OrthodoxColors.fallback
 
     private var typ: AppTypography { AppTypography(base: userFontSize) }
@@ -28,9 +38,35 @@ struct BibleView: View {
                         .foregroundColor(theme.text)
                         .padding(.top, isLandscape ? 12 : 8)
 
+                    BibleSearchPill { showSearch = true }
+
                     if let onResume {
                         ResumeReadingBanner(onResume: onResume)
                     }
+
+                    // План чтения Псалтири виден там, где Псалтирь (§5.2 п. 3).
+                    // onOpen — переход к текущей кафизме плана; у `.psalterSlava`
+                    // цель уже несёт номер кафизмы (`kathismaSlava`), у
+                    // `.psalterKathisma` цель — это slug молитвы вида
+                    // "psaltir.kafizma-N", номер достаём из него.
+                    MyReadingsCard(filter: { plan in
+                        switch plan.kind {
+                        case .psalterKathisma, .psalterSlava: return true
+                        default: return false
+                        }
+                    }, onOpen: { plan in
+                        let target = plan.kind.target(for: plan.nextUnitIndex)
+                        switch target {
+                        case .kathismaSlava(let kathisma, _):
+                            onSelectChapter(.kathisma(number: kathisma))
+                        case .prayer(let slug):
+                            if let number = Self.kathismaNumber(fromSlug: slug) {
+                                onSelectChapter(.kathisma(number: number))
+                            }
+                        }
+                    })
+
+                    PsalterCard(action: { showPsalter = true })
 
                     TestamentPicker(selected: $selectedTestament)
 
@@ -66,12 +102,37 @@ struct BibleView: View {
             }
             .presentationDetents([.medium])
         }
+        .sheet(isPresented: $showSearch) {
+            BibleSearchView(onSelectVerse: onSelectVerse)
+        }
+        .sheet(isPresented: $showPsalter) {
+            PsalterSheet(onSelectKathisma: { number, slava in
+                onSelectKathisma?(number, slava)
+            })
+        }
         .onChange(of: appState.bibleResetTrigger) { _, _ in
             withAnimation(.easeInOut(duration: 0.2)) {
                 selectedTestament = .new
                 chapterPickerBook = nil
             }
         }
+        #if DEBUG
+        .onAppear {
+            // `SINODAL_OPEN_PSALTER=1` — see DebugLaunchHooks.swift.
+            if DebugLaunchHooks.openPsalter {
+                showPsalter = true
+            }
+        }
+        #endif
+    }
+
+    /// Достаёт номер кафизмы из slug'а вида "psaltir.kafizma-13" — цель
+    /// `.psalterKathisma`-плана хранит только slug молитвы, без отдельного
+    /// поля с номером (см. `ReadingPlanKind.target(for:)`).
+    private static func kathismaNumber(fromSlug slug: String) -> Int? {
+        let prefix = "psaltir.kafizma-"
+        guard slug.hasPrefix(prefix) else { return nil }
+        return Int(slug.dropFirst(prefix.count))
     }
 
     private func bookRowShape(index: Int, total: Int) -> UnevenRoundedRectangle {
@@ -171,6 +232,7 @@ private struct ChapterPickerSheet: View {
             .navigationTitle("Выбор главы")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.light, for: .navigationBar)
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -228,6 +290,41 @@ struct TestamentPicker: View {
     }
 }
 
+// MARK: - Search pill
+
+/// Tappable search entry point, shown between the "Библия" title and the
+/// resume-reading banner — BibleView is the browse/find surface, so search
+/// belongs at its top. See search_design.md §4.5.
+private struct BibleSearchPill: View {
+    let action: () -> Void
+    private let theme = OrthodoxColors.fallback
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 14, weight: .medium))
+                Text("Поиск по Библии")
+                    .font(AppFont.regular(14))
+                Spacer()
+            }
+            .foregroundColor(theme.muted)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(theme.card)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(theme.border, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Поиск по Библии")
+    }
+}
+
 // MARK: - Resume banner
 
 private struct ResumeReadingBanner: View {
@@ -260,6 +357,45 @@ private struct ResumeReadingBanner: View {
         .buttonStyle(.plain)
         .accessibilityLabel("Продолжить чтение")
         .accessibilityHint("Вернуться к последнему месту чтения")
+    }
+}
+
+// MARK: - Псалтирь по кафизмам
+
+/// Entry point into `PsalterSheet`, shown above `TestamentPicker` — "Библия"
+/// is the natural place to look for the Psalter's kathisma navigation over
+/// the Synodal text (the молитвослов owns the Church-Slavonic text itself).
+/// See akathist_psalter_design.md §1.2/§6.
+private struct PsalterCard: View {
+    let action: () -> Void
+    private let theme = OrthodoxColors.fallback
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: "book.pages")
+                    .font(.system(size: 14))
+                Text("Псалтирь по кафизмам · 20 кафизм")
+                    .font(AppFont.regular(14))
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .foregroundColor(theme.accent)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 13)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(theme.accent.opacity(0.08))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(theme.accent.opacity(0.2), lineWidth: 0.5)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Псалтирь по кафизмам")
+        .accessibilityHint("Открыть список из 20 кафизм")
     }
 }
 

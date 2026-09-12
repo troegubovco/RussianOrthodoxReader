@@ -12,7 +12,14 @@ final class CloudSyncService {
     static let shared = CloudSyncService()
     private init() {}
 
-    private let container = CKContainer(identifier: "iCloud.OG.RussianOrthodoxReader")
+    // `lazy`, not eager `let`: constructing a `CKContainer` crashes outright in
+    // any environment without the matching embedded iCloud entitlements (e.g.
+    // a build installed via `simctl install`/`launch` outside Xcode's own
+    // debugger-attached run — see the `ScreenshotMode.isActive` guards on
+    // `load()`/`save()` below, which now never reach this property in that
+    // case). Eager `let` would construct it the instant `CloudSyncService()`
+    // itself is built, before either guard gets a chance to run.
+    private lazy var container = CKContainer(identifier: "iCloud.OG.RussianOrthodoxReader")
     private var database: CKDatabase { container.privateCloudDatabase }
     private let recordID = CKRecord.ID(recordName: "user-settings")
     private let recordType = "Settings"
@@ -64,6 +71,7 @@ final class CloudSyncService {
     /// Fetches the Settings record from the user's private CloudKit database.
     /// Returns empty Settings if no record exists yet.
     func load() async throws -> Settings {
+        guard !ScreenshotMode.isActive else { return Settings() }
         await queue.acquire()
         do {
             let result = try await loadFromCloud()
@@ -100,6 +108,7 @@ final class CloudSyncService {
 
     /// Upserts the Settings record. Only non-nil fields overwrite existing values.
     func save(_ settings: Settings) async throws {
+        guard !ScreenshotMode.isActive else { return }
         await queue.acquire()
         do {
             try await saveToCloud(settings)

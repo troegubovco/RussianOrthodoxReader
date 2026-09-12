@@ -17,7 +17,10 @@
       "icon": "sunrise",
       "sort_order": 1,
       "pages": [
-        { "kind": "parallel", "url": "https://azbyka.ru/molitvoslov/molitvy-utrennie-s-parallelnym-perevodom.html" }
+        {
+          "kind": "parallel",
+          "url": "https://azbyka.ru/molitvoslov/molitvy-utrennie-s-parallelnym-perevodom.html"
+        }
       ]
     },
     {
@@ -28,7 +31,10 @@
       "icon": "moon.stars",
       "sort_order": 2,
       "pages": [
-        { "kind": "parallel", "url": "https://azbyka.ru/molitvoslov/molitvy-na-son-grjadushhim-s-parallelnym-perevodom.html" }
+        {
+          "kind": "parallel",
+          "url": "https://azbyka.ru/molitvoslov/molitvy-na-son-grjadushhim-s-parallelnym-perevodom.html"
+        }
       ]
     },
     {
@@ -39,19 +45,37 @@
       "icon": "star",
       "sort_order": 3,
       "pages": [
-        { "kind": "plain", "url": "https://azbyka.ru/molitvoslov/molitva-gospodnya-otche-nash.html" },
-        { "kind": "plain", "url": "https://azbyka.ru/molitvoslov/iisusova-molitva.html" },
-        { "kind": "plain", "url": "https://azbyka.ru/molitvoslov/carju-nebesnyj.html" },
-        { "kind": "plain", "url": "https://azbyka.ru/molitvoslov/slavoslovie.html" }
+        {
+          "kind": "plain",
+          "url": "https://azbyka.ru/molitvoslov/molitva-gospodnya-otche-nash.html"
+        },
+        {
+          "kind": "plain",
+          "url": "https://azbyka.ru/molitvoslov/iisusova-molitva.html"
+        },
+        {
+          "kind": "plain",
+          "url": "https://azbyka.ru/molitvoslov/carju-nebesnyj.html"
+        },
+        {
+          "kind": "plain",
+          "url": "https://azbyka.ru/molitvoslov/slavoslovie.html"
+        }
       ]
     },
     {
       "slug": "communion-prep",
       "title": "Подготовка к Причащению",
       "subtitle": "Последование и благодарственные молитвы",
-      "icon": "cup.and.saucer",
+      "icon": "prosphora",
       "sort_order": 4,
-      "pages": []
+      "pages": [
+        {
+          "kind": "plain",
+          "heading": "h3",
+          "url": "https://azbyka.ru/molitvoslov/pered-ispovedyu.html"
+        }
+      ]
     },
     {
       "slug": "communion",
@@ -61,7 +85,10 @@
       "icon": "book",
       "sort_order": 1,
       "pages": [
-        { "kind": "plain", "url": "https://azbyka.ru/molitvoslov/posledovanie-ko-svyatomu-prichashheniyu.html" }
+        {
+          "kind": "plain",
+          "url": "https://azbyka.ru/molitvoslov/posledovanie-ko-svyatomu-prichashheniyu.html"
+        }
       ]
     },
     {
@@ -72,7 +99,11 @@
       "icon": "hands.sparkles",
       "sort_order": 2,
       "pages": [
-        { "kind": "plain", "heading": "h3", "url": "https://azbyka.ru/molitvoslov/blagodarstvennye-molitvy-po-svyatom-prichashhenii.html" }
+        {
+          "kind": "plain",
+          "heading": "h3",
+          "url": "https://azbyka.ru/molitvoslov/blagodarstvennye-molitvy-po-svyatom-prichashhenii.html"
+        }
       ]
     },
     {
@@ -82,9 +113,130 @@
       "icon": "book.closed",
       "sort_order": 6,
       "pages": [
-        { "kind": "plain", "heading": "h3", "merge_title": "Канон покаянный ко Господу нашему Иисусу Христу", "url": "https://azbyka.ru/molitvoslov/kanon-pokayannyj-ko-gospodu-nashemu-iisusu-xristu.html" },
-        { "kind": "plain", "heading": "h3", "merge_title": "Канон молебный ко Пресвятой Богородице", "url": "https://azbyka.ru/molitvoslov/kanon-molebnyj-ko-presvyatoj-bogorodice.html" },
-        { "kind": "plain", "heading": "h3", "merge_title": "Канон Ангелу хранителю", "url": "https://azbyka.ru/molitvoslov/kanon-angelu-xranitelyu.html" }
+        {
+          "kind": "plain",
+          "heading": "h3",
+          "merge_title": "Канон покаянный ко Господу нашему Иисусу Христу",
+          "url": "https://azbyka.ru/molitvoslov/kanon-pokayannyj-ko-gospodu-nashemu-iisusu-xristu.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h3",
+          "merge_title": "Канон молебный ко Пресвятой Богородице",
+          "url": "https://azbyka.ru/molitvoslov/kanon-molebnyj-ko-presvyatoj-bogorodice.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h3",
+          "merge_title": "Канон Ангелу хранителю",
+          "url": "https://azbyka.ru/molitvoslov/kanon-angelu-xranitelyu.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h2",
+          "merge_title": "Великий канон, понедельник",
+          "url": "https://azbyka.ru/molitvoslov/velikij-kanon-andreya-kritskogo-s-perevodom-na-russkij-yazyk-chitaemyj-v-ponedelnik-pervoj-sedmicy-velikogo-posta.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h3",
+          "merge_title": "Великий канон, вторник",
+          "url": "https://azbyka.ru/molitvoslov/velikij-kanon-andreya-kritskogo-s-perevodom-na-russkij-yazyk-chitaemyj-vo-vtornik-pervoj-sedmicy-velikogo-posta.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h2",
+          "merge_title": "Великий канон, среда",
+          "url": "https://azbyka.ru/molitvoslov/velikij-kanon-andreya-kritskogo-s-perevodom-na-russkij-yazyk-chitaemyj-v-sredu-pervoj-sedmicy-velikogo-posta.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h2",
+          "merge_title": "Великий канон, четверг",
+          "url": "https://azbyka.ru/molitvoslov/velikij-kanon-andreya-kritskogo-s-perevodom-na-russkij-yazyk-chitaemyj-v-chetverg-pervoj-sedmicy-velikogo-posta.html"
+        }
+      ]
+    },
+    {
+      "slug": "akafisty",
+      "title": "Акафисты",
+      "subtitle": "Хвалебные песнопения Господу, Богородице и святым",
+      "icon": "text.book.closed",
+      "sort_order": 7,
+      "pages": [
+        {
+          "kind": "plain", "heading": "h3", "section_selector": "type-male",
+          "merge_title": "Акафист Иисусу Сладчайшему",
+          "url": "https://azbyka.ru/molitvoslov/akafist-iisusu-sladchajshemu.html"
+        },
+        {
+          "kind": "plain", "heading": "h2",
+          "merge_title": "Акафист Пресвятой Богородице",
+          "url": "https://azbyka.ru/molitvoslov/akafist-presvjatoj-bogorodice-velikij-akafist-chitaemyj-v-subbotu-akafista.html"
+        },
+        {
+          "kind": "plain", "heading": "h4",
+          "merge_title": "Акафист святителю Николаю",
+          "url": "https://azbyka.ru/molitvoslov/akafist-svjatitelju-nikolaju-chudotvorcu.html"
+        },
+        {
+          "kind": "plain", "heading": "h2",
+          "merge_title": "Акафист Пантелеимону",
+          "url": "https://azbyka.ru/molitvoslov/akafist-svjatomu-velikomucheniku-i-celitelju-panteleimonu.html"
+        },
+        {
+          "kind": "plain", "heading": "h4",
+          "merge_title": "Акафист Ангелу хранителю",
+          "url": "https://azbyka.ru/molitvoslov/akafist-svjatomu-angelu-hranitelju.html"
+        },
+        {
+          "kind": "plain", "heading": "h4",
+          "merge_title": "Акафист Матроне Московской",
+          "url": "https://azbyka.ru/molitvoslov/akafist-svjatoj-pravednoj-matrone-moskovskoj.html"
+        },
+        {
+          "kind": "plain", "heading": "h4",
+          "merge_title": "Акафист Сергию Радонежскому",
+          "url": "https://azbyka.ru/molitvoslov/akafist-prepodobnomu-sergiju-radonezhskomu.html"
+        },
+        {
+          "kind": "plain", "heading": "h4",
+          "merge_title": "Акафист Серафиму Саровскому",
+          "url": "https://azbyka.ru/molitvoslov/akafist-prepodobnomu-serafimu-sarovskomu-chudotvorcu.html"
+        },
+        {
+          "kind": "plain", "heading": "h4",
+          "merge_title": "Акафист Спиридону Тримифунтскому",
+          "url": "https://azbyka.ru/molitvoslov/akafist-svjatitelju-spiridonu-trimifuntskomu-chudotvorcu.html"
+        },
+        {
+          "kind": "plain", "heading": "h4",
+          "merge_title": "Акафист Покрову Пресвятой Богородицы",
+          "url": "https://azbyka.ru/molitvoslov/akafist-pokrovu-presvjatoj-bogorodicy.html"
+        },
+        {
+          "kind": "plain", "heading": "h3",
+          "merge_title": "Акафист «Слава Богу за все»",
+          "url": "https://azbyka.ru/molitvoslov/akafist-slava-bogu-za-vsyo.html"
+        },
+        {
+          "kind": "plain", "heading": "h4",
+          "merge_title": "Акафист Иоанну Предтече",
+          "url": "https://azbyka.ru/molitvoslov/akafist-svjatomu-slavnomu-proroku-predteche-i-krestitelju-gospodnju-ioannu.html"
+        }
+      ]
+    },
+    {
+      "slug": "psaltir",
+      "title": "Псалтирь",
+      "subtitle": "Церковнославянская Псалтирь по кафизмам",
+      "icon": "book.pages",
+      "sort_order": 8,
+      "pages": [
+        {
+          "kind": "psaltir",
+          "url": "https://azbyka.ru/molitvoslov/psaltir-po-kafizmam.html"
+        }
       ]
     },
     {
@@ -92,9 +244,12 @@
       "title": "Богородице",
       "subtitle": "Молитвы ко Пресвятой Богородице",
       "icon": "sparkles",
-      "sort_order": 7,
+      "sort_order": 9,
       "pages": [
-        { "kind": "plain", "url": "https://azbyka.ru/molitvoslov/molitvy-ko-presvyatoj-bogorodice.html" }
+        {
+          "kind": "plain",
+          "url": "https://azbyka.ru/molitvoslov/molitvy-ko-presvyatoj-bogorodice.html"
+        }
       ]
     },
     {
@@ -102,7 +257,7 @@
       "title": "На разную потребу",
       "subtitle": "О здравии, в пути, в скорби",
       "icon": "leaf",
-      "sort_order": 8,
+      "sort_order": 10,
       "pages": []
     },
     {
@@ -112,8 +267,14 @@
       "icon": "cross.case",
       "sort_order": 1,
       "pages": [
-        { "kind": "plain", "url": "https://azbyka.ru/molitvoslov/molitvy-na-vsyakuyu-nemoshh.html" },
-        { "kind": "plain", "url": "https://azbyka.ru/molitvoslov/molitvy-o-zdravii-rebenka.html" }
+        {
+          "kind": "plain",
+          "url": "https://azbyka.ru/molitvoslov/molitvy-na-vsyakuyu-nemoshh.html"
+        },
+        {
+          "kind": "plain",
+          "url": "https://azbyka.ru/molitvoslov/molitvy-o-zdravii-rebenka.html"
+        }
       ]
     },
     {
@@ -123,7 +284,10 @@
       "icon": "airplane",
       "sort_order": 2,
       "pages": [
-        { "kind": "plain", "url": "https://azbyka.ru/molitvoslov/molitva-ko-presvjatoj-bogorodice-ot-cheloveka-sobirajushhegosja-v-put.html" }
+        {
+          "kind": "plain",
+          "url": "https://azbyka.ru/molitvoslov/molitva-ko-presvjatoj-bogorodice-ot-cheloveka-sobirajushhegosja-v-put.html"
+        }
       ]
     },
     {
@@ -133,8 +297,248 @@
       "icon": "cloud.rain",
       "sort_order": 3,
       "pages": [
-        { "kind": "plain", "url": "https://azbyka.ru/molitvoslov/molitvy-v-unynii.html" },
-        { "kind": "plain", "url": "https://azbyka.ru/molitvoslov/molitvy-v-trevoge-za-budushhee.html" }
+        {
+          "kind": "plain",
+          "url": "https://azbyka.ru/molitvoslov/molitvy-v-unynii.html"
+        },
+        {
+          "kind": "plain",
+          "url": "https://azbyka.ru/molitvoslov/molitvy-v-trevoge-za-budushhee.html"
+        }
+      ]
+    },
+    {
+      "slug": "obihod",
+      "parent": "daily",
+      "title": "В течение дня",
+      "subtitle": "Перед едой, делом, учением и чтением Писания",
+      "icon": "clock",
+      "sort_order": 4,
+      "pages": [
+        {
+          "kind": "plain",
+          "heading": "h2",
+          "url": "https://azbyka.ru/molitvoslov/molitva-pred-i-po-chtenii-evangeliya.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h3",
+          "merge_title": "Призывание помощи Духа Святаго",
+          "url": "https://azbyka.ru/molitvoslov/prizyvanie-pomoshhi-duxa-svyatago-na-vsyakoe-delo-dobroe.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h3",
+          "merge_title": "Молитва перед выходом из дома",
+          "url": "https://azbyka.ru/molitvoslov/molitva-pered-vyxodom-iz-doma.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h2",
+          "merge_title": "Молитвы по пути в храм",
+          "url": "https://azbyka.ru/molitvoslov/molitvy-po-puti-v-xram-i-pri-vxode-v-nego.html"
+        }
+      ]
+    },
+    {
+      "slug": "family",
+      "title": "О семье и близких",
+      "subtitle": "О детях, супругах, родителях, о работе",
+      "icon": "heart",
+      "sort_order": 5,
+      "pages": [
+        {
+          "kind": "plain",
+          "heading": "h2",
+          "merge_title": "Молитвы о примирении враждующих",
+          "url": "https://azbyka.ru/molitvoslov/molitvy-o-primirenii-vrazhduyushhix.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h3",
+          "merge_title": "О умножении любви",
+          "url": "https://azbyka.ru/molitvoslov/molitvy-o-umnozhenii-lyubvi-i-iskorenenii-nenavisti-i-vsyakoj-zloby.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h2",
+          "merge_title": "Молитвы при семейных несогласиях",
+          "url": "https://azbyka.ru/molitvoslov/molitva-pri-semejnyx-nesoglasiyax.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h2",
+          "merge_title": "О ненавидящих и обидящих нас",
+          "url": "https://azbyka.ru/molitvoslov/o-nenavidyashhix-i-obidyashhix-nas.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h3",
+          "merge_title": "Молитвы о работе",
+          "url": "https://azbyka.ru/molitvoslov/molitva-o-rabote.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h2",
+          "merge_title": "Молитвы о детях и крестниках",
+          "sections": [
+            "Молитва восприемника о крестнике",
+            "Молитва о детях, ко Господу Иисусу Христу",
+            "Молитва 2-я о детях, ко Господу Иисусу Христу",
+            "Молитва о детях ко Пресвятой Богородице"
+          ],
+          "url": "https://azbyka.ru/molitvoslov/molitvy-o-detyax-i-krestnikax.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h2",
+          "merge_title": "Молитвы о семейном благополучии",
+          "sections": [
+            "Благословение на вступление в брак",
+            "О совете и любви между мужем и женой",
+            "О всякой семейной и бытовой нужде"
+          ],
+          "url": "https://azbyka.ru/molitvoslov/molitvy-o-semejnom-blagopoluchii.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h2",
+          "merge_title": "Молитвы о помощи в родах",
+          "sections": [
+            "Молитва Господу о даровании терпения",
+            "Божией Матери в честь Ея иконы «Помощница в родах»"
+          ],
+          "url": "https://azbyka.ru/molitvoslov/o-pomoshhi-v-rodax.html"
+        }
+      ]
+    },
+    {
+      "slug": "saints",
+      "title": "Святым",
+      "subtitle": "Молитвы святым угодникам Божиим",
+      "icon": "person.crop.circle",
+      "sort_order": 11,
+      "pages": [
+        {
+          "kind": "plain",
+          "heading": "h3",
+          "merge_title": "Молитвы Ангелу хранителю",
+          "url": "https://azbyka.ru/molitvoslov/molitva-angelu-xranitelyu.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h2",
+          "merge_title": "Молитвы святителю Николаю Чудотворцу",
+          "url": "https://azbyka.ru/molitvoslov/molitva-svyatitelyu-nikolayu-arxiepiskopu-mir-likijskix-chudotvorcu.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h2",
+          "merge_title": "Молитвы блаженной Матроне Московской",
+          "url": "https://azbyka.ru/molitvoslov/molitva-blazhennoj-matrone-moskovskoj.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h2",
+          "merge_title": "Молитвы преподобному Сергию Радонежскому",
+          "url": "https://azbyka.ru/molitvoslov/molitva-prepodobnomu-sergiyu-igumenu-radonezhskomu.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h2",
+          "merge_title": "Молитвы преподобному Серафиму Саровскому",
+          "url": "https://azbyka.ru/molitvoslov/molitva-prepodobnomu-serafimu-sarovskomu.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h2",
+          "merge_title": "Молитвы великомученику и целителю Пантелеимону",
+          "url": "https://azbyka.ru/molitvoslov/molitva-velikomucheniku-i-celitelyu-panteleimonu.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h2",
+          "merge_title": "Молитвы святителю Спиридону Тримифунтскому",
+          "url": "https://azbyka.ru/molitvoslov/molitva-svyatitelyu-spiridonu-episkopu-trimifuntskomu-chudotvorcu.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h2",
+          "merge_title": "Молитвы блаженной Ксении Петербургской",
+          "url": "https://azbyka.ru/molitvoslov/molitva-blazhennoj-ksenii-peterburgskoj.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h2",
+          "merge_title": "Молитвы святителю Луке (Войно-Ясенецкому)",
+          "url": "https://azbyka.ru/molitvoslov/molitvy-svjatitelju-luke-vojno-jaseneckomu-arhiepiskopu-simferopolskomu-i-krymskomu.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h2",
+          "merge_title": "Молитвы праведному Иоанну Кронштадтскому",
+          "url": "https://azbyka.ru/molitvoslov/molitva-pravednomu-ioannu-kronshtadtskomu.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h2",
+          "merge_title": "Молитвы благоверным Петру и Февронии Муромским",
+          "url": "https://azbyka.ru/molitvoslov/molitva-blagovernym-knyazyu-petru-i-knyagine-fevronii-muromskim.html"
+        }
+      ]
+    },
+    {
+      "slug": "prazdniki",
+      "title": "Праздники и Пасха",
+      "subtitle": "Тропари двунадесятых праздников, Пасхальные часы",
+      "icon": "calendar",
+      "sort_order": 12,
+      "pages": [
+        {
+          "kind": "plain",
+          "heading": "h2",
+          "merge_title": "Часы Пасхальные",
+          "url": "https://azbyka.ru/chasy-pasxalnye"
+        },
+        {
+          "kind": "plain",
+          "heading": "h2",
+          "url": "https://azbyka.ru/molitvoslov/tropari-i-kondaki-dvunadesyatyx-prazdnikov.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h3",
+          "merge_title": "Пасхальный канон",
+          "url": "https://azbyka.ru/molitvoslov/pasxalnyj-kanon-tvorenie-ioanna-damaskina.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h3",
+          "merge_title": "Тропари и кондаки воскресные восьми гласов",
+          "url": "https://azbyka.ru/molitvoslov/tropari-i-kondaki-voskresnye-vosmi-glasov.html"
+        }
+      ]
+    },
+    {
+      "slug": "pominovenie",
+      "title": "О живых и усопших",
+      "subtitle": "Молитвы с именами из помянника",
+      "icon": "person.2",
+      "sort_order": 3,
+      "pages": [
+        {
+          "kind": "plain",
+          "heading": "h3",
+          "merge_title": "Молитвы за всякого усопшего христианина",
+          "url": "https://azbyka.ru/molitvoslov/molitva-ob-upokoenii-dushi-blizhnego.html"
+        },
+        {
+          "kind": "plain",
+          "heading": "h3",
+          "merge_title": "Лития, совершаемая мирянином дома и на кладбище",
+          "include_intro": true,
+          "url": "https://azbyka.ru/molitvoslov/chin-litii-sovershaemoj-miryaninom-doma-i-na-kladbishhe.html"
+        }
       ]
     }
   ]

@@ -34,6 +34,9 @@ nonisolated struct BibleVerse: Identifiable, Hashable {
 nonisolated enum ReaderRoute: Hashable, Identifiable {
     case chapter(bookId: String, chapter: Int)
     case references(title: String, references: [ReadingReference])
+    /// Псалтирь по кафизмам — kathisma 1...20, over the Synodal `psa` text.
+    /// See akathist_psalter_design.md §6.1.
+    case kathisma(number: Int)
 
     var id: String {
         switch self {
@@ -42,13 +45,15 @@ nonisolated enum ReaderRoute: Hashable, Identifiable {
         case let .references(title, references):
             let token = references.map { $0.id }.joined(separator: "|")
             return "refs:\(title):\(token)"
+        case let .kathisma(number):
+            return "kathisma:\(number)"
         }
     }
 }
 
 extension ReaderRoute: Codable {
     private enum CodingKeys: String, CodingKey {
-        case type, bookId, chapter
+        case type, bookId, chapter, number
     }
 
     func encode(to encoder: Encoder) throws {
@@ -61,6 +66,9 @@ extension ReaderRoute: Codable {
         case .references:
             // References are date-specific liturgical readings — not persisted.
             throw EncodingError.invalidValue(self, .init(codingPath: [], debugDescription: "references are not persisted"))
+        case let .kathisma(number):
+            try container.encode("kathisma", forKey: .type)
+            try container.encode(number, forKey: .number)
         }
     }
 
@@ -72,6 +80,9 @@ extension ReaderRoute: Codable {
             let bookId = try container.decode(String.self, forKey: .bookId)
             let chapter = try container.decode(Int.self, forKey: .chapter)
             self = .chapter(bookId: bookId, chapter: chapter)
+        case "kathisma":
+            let number = try container.decode(Int.self, forKey: .number)
+            self = .kathisma(number: number)
         default:
             throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "Unknown route type: \(type)"))
         }

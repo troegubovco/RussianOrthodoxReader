@@ -12,7 +12,7 @@ import Foundation
 ///    поэтому личные записи из iCloud не подтягиваются;
 ///  • помянник заполняется нейтральными демонстрационными именами, чтобы список
 ///    на скриншоте выглядел естественно.
-enum ScreenshotMode {
+nonisolated enum ScreenshotMode {
     static let isActive: Bool =
         CommandLine.arguments.contains("-screenshotMode")
 }

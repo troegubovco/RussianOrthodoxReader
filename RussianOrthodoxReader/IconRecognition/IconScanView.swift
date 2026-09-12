@@ -70,6 +70,7 @@ struct IconScanView: View {
             .background(theme.background.ignoresSafeArea())
             .navigationTitle("Распознать икону")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.light, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Закрыть") { dismiss() }
@@ -83,7 +84,12 @@ struct IconScanView: View {
             CameraCaptureView { image in
                 showCamera = false
                 if let image {
-                    handleNewImage(image.downscaled(maxDimension: 1600))
+                    let frame = image.downscaled(maxDimension: 1600)
+                    // Модель получает ровно то, что в рамке видоискателя
+                    // (центральный квадрат 0.82 ширины кадра): боковые полосы
+                    // стены — главный источник промахов. Полный кадр сохраняем
+                    // как исходник для экрана обрезки.
+                    handleNewImage(frame.guideCropped(), cropFallback: frame)
                     if appState.saveIconPhotosToLibrary {
                         saveToPhotoLibrary(image)
                     }
@@ -231,7 +237,10 @@ struct IconScanView: View {
 
     // MARK: - Recognition
 
-    private func handleNewImage(_ image: UIImage, isCropRetry: Bool = false) {
+    /// `cropFallback` — более полный кадр, который получит экран обрезки,
+    /// если распознавание по `image` не удалось (снимок с камеры обрезается
+    /// по рамке видоискателя, но кадрировать пользователь должен полный кадр).
+    private func handleNewImage(_ image: UIImage, cropFallback: UIImage? = nil, isCropRetry: Bool = false) {
         capturedImage = image
         hasCropRetried = isCropRetry
         guard let recognizer = IconRecognizer.shared else {
@@ -250,7 +259,7 @@ struct IconScanView: View {
                 if case .unknown = recognitionResult, !hasCropRetried {
                     // Первая неудача — вместо тупика сразу экран обрезки:
                     // повторный прогон по обрезанному кадру часто срабатывает.
-                    cropSource = image
+                    cropSource = cropFallback ?? image
                     showCrop = true
                 } else {
                     result = recognitionResult
@@ -281,8 +290,8 @@ struct IconScanView: View {
 // MARK: - Camera capture (UIImagePickerController wrapper)
 
 /// Штатная системная камера (со всеми привычными элементами управления) плюс
-/// ненавязчивая рамка-подсказка: квадрат соответствует центральному кропу,
-/// который видит классификатор.
+/// рамка-подсказка. Рамка честная: снимок обрезается ровно по ней
+/// (`guideCropped`), так что «что в рамке — то и анализируется».
 private struct CameraCaptureView: UIViewControllerRepresentable {
     let onCapture: (UIImage?) -> Void
 
@@ -327,17 +336,29 @@ private struct CameraCaptureView: UIViewControllerRepresentable {
 }
 
 /// Прозрачный слой поверх видоискателя, пропускающий все касания к штатным
-/// элементам управления камеры.
+/// элементам управления камеры. Рамка = реальная область анализа
+/// (см. `guideCropped`); всё вне рамки затеняется в пределах видоискателя,
+/// чтобы было видно, что́ именно будет отброшено.
 private final class FramingGuideOverlay: UIView {
+    private let dim = CAShapeLayer()
     private let shape = CAShapeLayer()
+    private let hint = UILabel()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         backgroundColor = .clear
+        dim.fillRule = .evenOdd
+        dim.fillColor = UIColor.black.withAlphaComponent(0.32).cgColor
+        layer.addSublayer(dim)
         shape.fillColor = UIColor.clear.cgColor
         shape.strokeColor = UIColor.white.withAlphaComponent(0.85).cgColor
         shape.lineWidth = 2
         layer.addSublayer(shape)
+        hint.text = "Поместите икону в рамку"
+        hint.textColor = UIColor.white.withAlphaComponent(0.85)
+        hint.font = .systemFont(ofSize: 15, weight: .medium)
+        hint.textAlignment = .center
+        addSubview(hint)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
@@ -351,10 +372,42 @@ private final class FramingGuideOverlay: UIView {
         let rect = CGRect(x: center.x - side / 2, y: center.y - side / 2, width: side, height: side)
         shape.frame = bounds
         shape.path = UIBezierPath(roundedRect: rect, cornerRadius: 16).cgPath
+
+        // Затеняем только область видоискателя (4:3, считаем его центр совпадающим
+        // с центром рамки — то же допущение, что и в guideCropped), а не весь экран:
+        // overlay лежит и поверх штатных контролов камеры, их темнить нельзя.
+        let previewHeight = bounds.width * 4 / 3
+        let preview = CGRect(x: 0, y: center.y - previewHeight / 2,
+                             width: bounds.width, height: previewHeight)
+            .intersection(bounds)
+        let dimPath = UIBezierPath(rect: preview)
+        dimPath.append(UIBezierPath(roundedRect: rect, cornerRadius: 16))
+        dim.frame = bounds
+        dim.path = dimPath.cgPath
+
+        hint.frame = CGRect(x: 0, y: rect.maxY + 10, width: bounds.width, height: 20)
     }
 }
 
 extension UIImage {
+    /// Центральный квадрат со стороной `fraction` × меньшей стороны кадра —
+    /// ровно та область, которую очерчивает рамка видоискателя. Замерено на
+    /// полевых фото: срезание боковых полос стены поднимает softmax
+    /// (0.73 → 0.90 на Николае Чудотворце), а более тесный кроп по краю доски
+    /// ХУЖЕ (0.86) — модели нужен запас вокруг доски, 0.82 у оптимума.
+    /// Центральный квадрат инвариантен к EXIF-повороту, поэтому кроп по
+    /// `cgImage` с пробросом `imageOrientation` корректен.
+    func guideCropped(fraction: CGFloat = 0.82) -> UIImage {
+        guard let cg = cgImage else { return self }
+        let width = CGFloat(cg.width), height = CGFloat(cg.height)
+        let side = min(width, height) * fraction
+        guard side >= 1 else { return self }
+        let rect = CGRect(x: (width - side) / 2, y: (height - side) / 2,
+                          width: side, height: side).integral
+        guard let cropped = cg.cropping(to: rect) else { return self }
+        return UIImage(cgImage: cropped, scale: 1, orientation: imageOrientation)
+    }
+
     /// Returns a copy whose longest edge is at most `maxDimension`, preserving
     /// aspect ratio. Returns `self` unchanged if already within bounds.
     func downscaled(maxDimension: CGFloat) -> UIImage {

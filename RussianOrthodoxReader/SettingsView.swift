@@ -4,8 +4,14 @@ struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.userFontSize) private var userFontSize
     private let theme = OrthodoxColors.fallback
+    @AppStorage(PrayersRepository.feminineFormsKey) private var feminineForms = false
+    @State private var showWhatsNew = false
 
     private var typ: AppTypography { AppTypography(base: userFontSize) }
+
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+    }
 
     /// Converts the stored "HH:mm" string to a Date for the DatePicker and back.
     private var notificationTimeBinding: Binding<Date> {
@@ -203,6 +209,16 @@ struct SettingsView: View {
                     }
                     .cardStyle()
 
+                    // Prayers — gendered forms
+                    VStack(spacing: 0) {
+                        SettingsToggle(
+                            title: "Женская форма молитв",
+                            subtitle: "В последовании ко Причащению и благодарственных молитвах",
+                            isOn: $feminineForms
+                        )
+                    }
+                    .cardStyle()
+
                     // Icon recognition
                     VStack(spacing: 0) {
                         SettingsToggle(
@@ -220,7 +236,7 @@ struct SettingsView: View {
                             .foregroundColor(theme.text)
 
                         Group {
-                            Text("Православное Чтение v1.1")
+                            Text("Синодал \(appVersion)")
                             Text("Открытый исходный код — лицензия MIT")
                             Text("Синодальный перевод — общественное достояние")
                             Text("Словарь — Библейский словарь Нюстрема (1874)")
@@ -229,6 +245,16 @@ struct SettingsView: View {
                         }
                         .font(AppFont.regular(typ.footnote))
                         .foregroundColor(theme.muted)
+
+                        Button {
+                            showWhatsNew = true
+                        } label: {
+                            Text("Что нового в этой версии")
+                                .font(AppFont.regular(typ.footnote))
+                                .foregroundColor(theme.accent)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 4)
                     }
                     .padding(20)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -243,6 +269,10 @@ struct SettingsView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .background(theme.background.ignoresSafeArea())
+        .sheet(isPresented: $showWhatsNew) {
+            WhatsNewView()
+                .environment(\.userFontSize, userFontSize)
+        }
     }
 
 }
