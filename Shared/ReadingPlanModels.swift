@@ -114,7 +114,7 @@ nonisolated enum ReadingPlanKind: Hashable {
     private static let greatCanonSlugs = [
         "canons.velikij-kanon-ponedelnik",
         "canons.velikij-kanon-vtornik",
-        "canons.velikij-kanon-sredu",
+        "canons.velikij-kanon-sreda",
         "canons.velikij-kanon-chetverg"
     ]
     private static let greatCanonLabels = [
